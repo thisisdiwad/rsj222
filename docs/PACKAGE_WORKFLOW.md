@@ -1,10 +1,10 @@
 # Pakiety sesyjne i obowiązkowe przekazanie
 
-Zasada użytkownika: **po każdym wykonanym pakiecie powstaje prompt nowej sesji wykonującej kolejny pakiet**. Dotyczy wszystkich etapów, nie tylko końca projektu. Stan bieżący: PKG-001–012 COMPLETE; P21 COMPLETE (H04 VISUAL USER PASS 24.09.2026 po dwóch wskazanych poprawkach); **PKG-013/P22 COMPLETE 24.09.2026; następny PKG-014/P23–P25**, NOT STARTED. Bazowa bramka V oprawy zaliczona akceptacją użytkownika 22.09.2026; H01, H02 i H03 VISUAL USER PASS 23.09.2026 (H03: „skocznia obersdorff jest ok”; bez twierdzenia, że użytkownik obejrzał cały film). Zewnętrzny playtest PLAYABILITY NOT RUN. Stan i dowody H04: [raport PKG-012](evidence/PKG-012/REPORT.md). Incydent sześciu nadpisanych artefaktów PKG-010 zamknięto akceptacją udokumentowanej utraty przez użytkownika („dobra, trudno”): historyczny manifest bez zmian, obecne pliki nie są oryginałami, bez nowej bazy. Dla H01–H20 obowiązuje nowsza zasada skoczni inspirowanych z poprawnymi K/HS, zróżnicowaną oprawą, balansem ADAPT/TUNE i możliwością czystego lądowania na dwie nogi 2 m za rekordem — patrz [AGENTS.md](../AGENTS.md).
+Zasada użytkownika: **po każdym wykonanym pakiecie powstaje prompt nowej sesji wykonującej kolejny pakiet**. Dotyczy wszystkich etapów, nie tylko końca projektu. Stan bieżący: PKG-001–012 COMPLETE; P21 COMPLETE (H04 VISUAL USER PASS 24.09.2026 po dwóch wskazanych poprawkach); PKG-013/P22 COMPLETE 24.09.2026; **PKG-014/P23–P25 COMPLETE 24.09.2026** ([raport](evidence/PKG-014/REPORT.md), VISUAL USER PASS ekranów 24.09.2026); **następny PKG-015/P26–P28**, NOT STARTED. Bazowa bramka V oprawy zaliczona akceptacją użytkownika 22.09.2026; H01, H02 i H03 VISUAL USER PASS 23.09.2026 (H03: „skocznia obersdorff jest ok”; bez twierdzenia, że użytkownik obejrzał cały film). Zewnętrzny playtest PLAYABILITY NOT RUN. Stan i dowody H04: [raport PKG-012](evidence/PKG-012/REPORT.md). Incydent sześciu nadpisanych artefaktów PKG-010 zamknięto akceptacją udokumentowanej utraty przez użytkownika („dobra, trudno”): historyczny manifest bez zmian, obecne pliki nie są oryginałami, bez nowej bazy. Dla H01–H20 obowiązuje nowsza zasada skoczni inspirowanych z poprawnymi K/HS, zróżnicowaną oprawą, balansem ADAPT/TUNE i możliwością czystego lądowania na dwie nogi 2 m za rekordem — patrz [AGENTS.md](../AGENTS.md).
 
 Obowiązuje nadrzędna [zasada prostoty z AGENTS.md](../AGENTS.md): najprostsze rozwiązanie dające dobry efekt, praca w aktywnym zakresie i **jedno review dopiero po całym pakiecie**. Ta mapa służy wykonaniu gry, nie rozbudowywaniu procesu zarządzania. Nie dodawaj kolejnych bramek, komisji ani sesji audytowych.
 
-**Praca bez Git (polecenie użytkownika 23.09.2026):** zapisuj zmiany bezpośrednio na dysku; nie wykonuj żadnych poleceń Git, nie twórz repozytorium ani konfiguracji. Zmienić to może tylko nowe, wyraźne polecenie użytkownika. Główny `.git` usunięto 23.09.2026, głównego `.gitignore` nie było. Zagnieżdżony backup `C:\retro-ski-jumping\retro-ski-jumping-23-09-2026-backup` zachowuje swoje `.git` i `.gitignore`: nie korzystaj z nich ani nie porządkuj backupu. Wzmianki o Git w dawnych raportach są historyczne, nie stanowią pozwolenia. Utrata sześciu dawnych artefaktów PKG-010 została zaakceptowana, nie odwrócona.
+**Praca w repozytorium GitHub (polecenie użytkownika 24.09.2026):** pakiety wykonujemy w repozytorium `thisisdiwad/rsj222` — gałąź robocza, commity, PR. Uchyla to dawny zakaz Git z 23.09.2026; ścieżki `C:\retro-ski-jumping`, lokalny backup i praca „bez Git” w starszych dokumentach są historią etapu lokalnego. Utrata sześciu dawnych artefaktów PKG-010 została zaakceptowana, nie odwrócona.
 
 ## 1. Zadanie, pakiet i bramka
 
@@ -34,7 +34,7 @@ Każdy wiersz ma dokładny zakres. Następny numer można rozpocząć po zamkni�
 | PKG-011 | P21-H03 | Oberstdorf duża: dane, geometria, art, weryfikacja | COMPLETE |
 | PKG-012 | P21-H04 | Planica: dane, geometria, art, weryfikacja; zamknięcie P21 po odbiorze | COMPLETE |
 | PKG-013 | P22 | Ustawienia, remapowanie i dostępność; bramka B / MVP | COMPLETE |
-| PKG-014 | P23, P24, P25 | Sezon, własny kalendarz i silnik turnieju KO | NOT STARTED |
+| PKG-014 | P23, P24, P25 | Sezon, własny kalendarz i silnik turnieju KO | COMPLETE |
 | PKG-015 | P26, P27, P28 | Drużyny, Super Team i King of the Hill | NOT STARTED |
 | PKG-016 | P29, P30, P31 | Rekordy/statystyki, komplet sprite/UI i dźwięku; bramka C po P29 | NOT STARTED |
 | PKG-017 | P32-H05 | Garmisch-Partenkirchen: D/G/A/V | NOT STARTED |
@@ -75,7 +75,7 @@ Plik kanoniczny `docs/handoffs/PKG-NNN.md` zawsze zawiera aktualną wersję prom
 
 Każdy prompt jest samodzielnym poleceniem wykonawczym dla modelu bez historii czatu. Musi zawierać:
 
-- absolutny katalog projektu, numer pakietu i dokładne Pxx/podzadania;
+- repozytorium/katalog projektu, numer pakietu i dokładne Pxx/podzadania;
 - faktyczny stan wejściowy, co jest gotowe i czego jeszcze nie wykonano;
 - kolejność lektury źródeł prawdy i najważniejsze wymagania użytkownika;
 - konkretny wynik pakietu, granice zakresu i kolejność implementacji;

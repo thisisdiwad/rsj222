@@ -625,7 +625,7 @@ test.describe('PKG-006 — trwała sesja i replay', () => {
     // danych wizualnych. Na zwykłym URL produkt pokazuje prosty komunikat dla
     // gracza, zachowując zapisane dane bez przeliczania ich nową fizyką.
     await page.evaluate(async () => {
-      const open = indexedDB.open('retro-ski-jumping', 1)
+      const open = indexedDB.open('retro-ski-jumping')
       const db = await new Promise<IDBDatabase>((resolve, reject) => {
         open.onsuccess = () => resolve(open.result)
         open.onerror = () => reject(open.error)

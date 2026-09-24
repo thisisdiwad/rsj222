@@ -367,7 +367,7 @@ test.describe('PKG-008 — powtórka z niezgodną wersją danych wizualnych', ()
       // starszej/nieznanej skoczni, żeby wymusić `replayVisualsCompatible === false`
       // bez zmiany kodu gry — to tylko dane brzegowe w bazie.
       await page.evaluate(async () => {
-        const open = indexedDB.open('retro-ski-jumping', 1)
+        const open = indexedDB.open('retro-ski-jumping')
         const db = await new Promise<IDBDatabase>((resolve, reject) => {
           open.onsuccess = () => resolve(open.result)
           open.onerror = () => reject(open.error)

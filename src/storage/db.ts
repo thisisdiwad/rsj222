@@ -16,9 +16,13 @@ import {
   improvesRecord,
   isOfficialRecordCandidate,
   recordKey,
+  validateStoredCalendar,
   validateStoredReplay,
+  validateStoredSeason,
   validateStoredSession,
   type RecordCandidate,
+  type StoredCalendar,
+  type StoredSeason,
   type SessionLeaseRecord,
   type StoredRecord,
   type StoredReplay,
@@ -42,13 +46,16 @@ export function openGameDatabase(factory: IDBFactory = indexedDB): Promise<IDBDa
     const open = factory.open(DB_NAME, DB_VERSION)
     open.onupgradeneeded = () => {
       const db = open.result
-      // v1 stores remain untouched on upgrade; v2 adds only global settings.
+      // Older stores remain untouched on upgrade; v2 adds global settings,
+      // v3 adds seasons and custom calendars (PKG-014).
       if (!db.objectStoreNames.contains(STORE.sessions)) db.createObjectStore(STORE.sessions, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(STORE.results)) db.createObjectStore(STORE.results, { keyPath: 'resultId' })
       if (!db.objectStoreNames.contains(STORE.records)) db.createObjectStore(STORE.records, { keyPath: 'key' })
       if (!db.objectStoreNames.contains(STORE.replays)) db.createObjectStore(STORE.replays, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(STORE.leases)) db.createObjectStore(STORE.leases, { keyPath: 'sessionId' })
       if (!db.objectStoreNames.contains(STORE.settings)) db.createObjectStore(STORE.settings, { keyPath: 'key' })
+      if (!db.objectStoreNames.contains(STORE.seasons)) db.createObjectStore(STORE.seasons, { keyPath: 'id' })
+      if (!db.objectStoreNames.contains(STORE.calendars)) db.createObjectStore(STORE.calendars, { keyPath: 'id' })
     }
     open.onsuccess = () => resolve(open.result)
     open.onerror = () => reject(open.error ?? new Error('Nie udało się otworzyć bazy.'))
@@ -80,6 +87,8 @@ export type CommitInput = {
   readonly result: CompetitionJumpResult | null
   readonly recordCandidate: RecordCandidate | null
   readonly replay: StoredReplay | null
+  /** Konkurs sezonu: stan sezonu zapisywany w tej samej transakcji co skok. */
+  readonly season?: StoredSeason | null
   readonly ownerId: string
   readonly nowMs: number
   readonly leaseTtlMs?: number
@@ -196,6 +205,11 @@ export async function commitAttempt(
       }
 
       if (sessionIsCurrent) sessions.put(input.session)
+      if (input.season) {
+        const seasons = transaction.objectStore(STORE.seasons)
+        const storedSeason = (await request(seasons.get(input.season.id))) as StoredSeason | undefined
+        if (!storedSeason || storedSeason.revision <= input.season.revision) seasons.put(input.season)
+      }
     })().catch((cause: unknown) => {
       // Każda awaria w środku przerywa całość; połowa transakcji nigdy nie trafia na dysk.
       failure = cause
@@ -260,6 +274,52 @@ export async function loadLatestReplay(db: IDBDatabase): Promise<
   }
   return { kind: 'rejected', reason: lastReason }
 }
+
+/** Poza konkursem (start/porzucenie sezonu) zapis sezonu jest osobną transakcją. */
+export function saveSeason(db: IDBDatabase, season: StoredSeason): Promise<void> {
+  return putOne(db, STORE.seasons, season, 'Nie zapisano sezonu.')
+}
+
+export function saveCalendar(db: IDBDatabase, calendar: StoredCalendar): Promise<void> {
+  return putOne(db, STORE.calendars, calendar, 'Nie zapisano kalendarza.')
+}
+
+function putOne(db: IDBDatabase, store: string, value: unknown, failure: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction([store], 'readwrite')
+    transaction.oncomplete = () => resolve()
+    transaction.onabort = () => reject(transaction.error ?? new Error(failure))
+    transaction.onerror = () => reject(transaction.error ?? new Error(failure))
+    transaction.objectStore(store).put(value)
+  })
+}
+
+/** Wszystkie poprawne sezony; uszkodzone rekordy są pomijane, nie kasowane. */
+export async function loadSeasons(db: IDBDatabase): Promise<{ readonly seasons: readonly StoredSeason[]; readonly rejected: number }> {
+  const transaction = db.transaction([STORE.seasons], 'readonly')
+  const all = (await request(transaction.objectStore(STORE.seasons).getAll())) as unknown[]
+  const seasons: StoredSeason[] = []
+  let rejected = 0
+  for (const raw of all) {
+    const validated = validateStoredSeason(raw)
+    if (validated.ok) seasons.push(validated.value)
+    else rejected += 1
+  }
+  return { seasons, rejected }
+}
+
+export async function loadCalendar(db: IDBDatabase, id: string): Promise<LoadedCalendar> {
+  const transaction = db.transaction([STORE.calendars], 'readonly')
+  const raw = await request(transaction.objectStore(STORE.calendars).get(id))
+  if (raw === undefined) return { kind: 'none' }
+  const validated = validateStoredCalendar(raw)
+  return validated.ok ? { kind: 'ok', calendar: validated.value } : { kind: 'rejected', reason: validated.reason }
+}
+
+export type LoadedCalendar =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'ok'; readonly calendar: StoredCalendar }
+  | { readonly kind: 'rejected'; readonly reason: string }
 
 export async function loadOfficialRecord(db: IDBDatabase, key: string): Promise<StoredRecord | undefined> {
   const transaction = db.transaction([STORE.records], 'readonly')

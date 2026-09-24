@@ -234,7 +234,7 @@ test('H02 konkurs: klawiatura, zapis/reload, replay bieżący i starsza wersja, 
   // Podmieniony hillId pod tym samym sessionId nie może wznowić innej skoczni.
   await page.evaluate(async (sessionId) => {
     const db = await new Promise<IDBDatabase>((ok, bad) => {
-      const req = indexedDB.open('retro-ski-jumping', 1)
+      const req = indexedDB.open('retro-ski-jumping')
       req.onsuccess = () => ok(req.result)
       req.onerror = () => bad(req.error)
     })
@@ -261,7 +261,7 @@ test('H02 konkurs: klawiatura, zapis/reload, replay bieżący i starsza wersja, 
   // być odtwarzana jako zgodny wizualnie H02 (bez przeliczania wyniku).
   await page.evaluate(async (resultId) => {
     const db = await new Promise<IDBDatabase>((ok, bad) => {
-      const req = indexedDB.open('retro-ski-jumping', 1)
+      const req = indexedDB.open('retro-ski-jumping')
       req.onsuccess = () => ok(req.result)
       req.onerror = () => bad(req.error)
     })

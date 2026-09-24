@@ -10,6 +10,10 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4173',
     video: 'off',
     trace: 'retain-on-failure',
+    // Opcjonalnie: przeglądarka spoza wersji pobranej przez Playwright (np. obraz CI/chmury).
+    launchOptions: process.env.PW_CHROMIUM_EXECUTABLE
+      ? { executablePath: process.env.PW_CHROMIUM_EXECUTABLE }
+      : {},
   },
   webServer: {
     command: 'npm run preview -- --host 127.0.0.1 --port 4173',

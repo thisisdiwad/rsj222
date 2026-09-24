@@ -96,7 +96,7 @@ W iframe potrzebne uprawnienie fullscreen; fallback sprawdzić w teście. Publik
 
 ## 6. Zapis i odzyskiwanie
 
-IndexedDB z magazynami: settings, profiles, sessions, results, records, replays, migrations. Skończony skok: jedna transakcja aktualizuje wynik, postęp, statystyki i ewentualny rekord/replay. `resultId` i numer rewizji sesji zabezpieczają idempotencję po wznowieniu. Zapis nie jest odkładany do zamknięcia karty.
+IndexedDB z magazynami: settings, profiles, sessions, results, records, replays, migrations. Stan faktyczny (PKG-014, DB v3): sessions, results, records, replays, leases, settings, seasons, calendars; każda wersja tylko dodaje magazyny. Konkurs sezonu ma własną sesję `${sezon}-eN`, a stan sezonu zapisuje się w tej samej transakcji co ostatni skok konkursu. Skończony skok: jedna transakcja aktualizuje wynik, postęp, statystyki i ewentualny rekord/replay. `resultId` i numer rewizji sesji zabezpieczają idempotencję po wznowieniu. Zapis nie jest odkładany do zamknięcia karty.
 
 Punkt wznowienia konkursu istnieje po każdym zatwierdzonym skoku i przed startem kolejnego. Zdarzenia wejścia/początkowy seed aktywnego skoku mogą być buforowane; po awarii przed zatwierdzeniem wracamy do stanu przed próbą, bez podwójnego naliczania. To lokalna gra, więc taka możliwość powtórzenia po zamknięciu karty nie jest traktowana jako zabezpieczona rywalizacja online.
 
@@ -128,4 +128,4 @@ Build statyczny pod HTTPS; sprawdzić `/` i `/retro-ski-jumping/`. Adresy asset�
 
 Service worker dopiero pod koniec: cache z buildId, scope do katalogu gry, pobranie kompletnego zestawu przed oznaczeniem offline-ready. Update czeka do menu/końca sesji, nie przeładowuje w locie. Test: build A → update B → offline, bez mieszania wersji skryptów, danych i atlasów. Jeżeli użytkownik po raz pierwszy otwiera adres całkowicie offline i nie ma zainstalowanego service workera/cache, gra nie może wyświetlić własnego komunikatu — przeglądarka pokazuje swój błąd sieci. Własny ekran błędu jest wymagany tylko wtedy, gdy shell już się załadował, lecz brakuje zasobów. Dokumentacja wydania zawiera instrukcję unieważniania własnego cache; nigdy nie kasuje całej pamięci innych aplikacji na origin.
 
-Do repozytorium gry nie kopiować zawartości katalogów skilli do `public/`. Utworzenie Git nie jest elementem tej dostawy; gdy rozpocznie się implementacja, politykę kontroli wersji ustalić z bieżącymi instrukcjami środowiska. Nie modyfikować globalnej konfiguracji użytkownika.
+Do repozytorium gry nie kopiować zawartości katalogów skilli do `public/`. Kod i dokumentacja są w repozytorium GitHub `thisisdiwad/rsj222` (od 24.09.2026); zależności instaluje `npm ci`, a artefakty budowania i testów nie są wersjonowane. Nie modyfikować globalnej konfiguracji użytkownika.

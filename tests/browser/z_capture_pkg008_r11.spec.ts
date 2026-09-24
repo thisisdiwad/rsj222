@@ -606,7 +606,7 @@ test.describe(`PKG-008 runda 11 — audyt widoków (${STAGE})`, () => {
 
     // Powtórka techniczna: replay zapisany na archiwalnej wersji danych.
     await page.evaluate(async () => {
-      const open = indexedDB.open('retro-ski-jumping', 1)
+      const open = indexedDB.open('retro-ski-jumping')
       const db = await new Promise<IDBDatabase>((resolvePromise, rejectPromise) => {
         open.onsuccess = () => resolvePromise(open.result)
         open.onerror = () => rejectPromise(open.error)

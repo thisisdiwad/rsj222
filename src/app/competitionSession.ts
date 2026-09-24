@@ -28,6 +28,7 @@ import {
   type AiDifficulty,
   type CompetitionAttempt,
   type CompetitionEntrant,
+  type CompetitionFormat,
   type CompetitionRoundId,
   type CompetitionState,
   type RankingEntry,
@@ -43,6 +44,7 @@ import {
   type RecordCandidate,
   type SessionStats,
   type StoredReplay,
+  type StoredSeason,
   type StoredSession,
 } from '../storage/schema'
 import {
@@ -145,6 +147,36 @@ export type CommitRequest = {
   readonly result: CompetitionJumpResult | null
   readonly recordCandidate: RecordCandidate | null
   readonly replay: StoredReplay | null
+  /** Dołączany przez warstwę aplikacji dla konkursu sezonu (ta sama transakcja). */
+  readonly season?: StoredSeason | null
+}
+
+/** Sezon/KO: inna sesja, format i seed; brak pola = konkurs standardowy skoczni. */
+export type CompetitionVariant = {
+  readonly format?: CompetitionFormat
+  readonly seed?: number
+  /** Nagłówek ekranów, np. „PUCHAR 2/4”. */
+  readonly label?: string
+}
+
+export type KoPairRow = {
+  readonly index: number
+  readonly slots: readonly {
+    readonly participantId: string | null
+    readonly name: string
+    readonly koStartNumber: number | null
+    readonly qualificationRank: number | null
+    readonly totalTenths: number | null
+    readonly status: RankingEntry['status']
+  }[]
+  readonly winnerId: string | null
+}
+
+export type KoBracketView = {
+  readonly resolved: boolean
+  readonly pairs: readonly KoPairRow[]
+  readonly luckyLosers: readonly string[]
+  readonly longFallAdvancers: readonly string[]
 }
 
 export type HumanStanding = {
@@ -184,6 +216,9 @@ export type CompetitionSessionSnapshot = {
   readonly leaderTotalTenths: number
   readonly botYieldCount: number
   readonly leadingTargetHalfMeters: number | null
+  readonly format: CompetitionFormat
+  readonly variantLabel: string | null
+  readonly ko: KoBracketView | null
   readonly jump: {
     readonly phase: string
     readonly tick: number
@@ -228,6 +263,9 @@ export class CompetitionSession {
   private recorder: JumpRecorder | null = null
   /** Sufit bezpiecznej belki jury dla bieżącej próby (prognoza z jej pola wiatru). */
   safeGateCeiling: number
+  /** Standardowy konkurs: stała bazowa; sezon: baza XOR seed konkursu. */
+  private readonly aiBaseSeed: number
+  private readonly variantLabel: string | null
   /** Pole wiatru bieżącej próby: ta sama instancja służy prognozie i skokowi. */
   private currentWindField: WindField | null = null
 
@@ -244,13 +282,18 @@ export class CompetitionSession {
     enterCurrentlyDown = false,
     restored: StoredSession | null = null,
     sessionId?: string,
+    variant: CompetitionVariant = {},
   ) {
     this.profiles = restored ? restored.profiles : LOCAL_PROFILES.slice(0, profileCount)
+    this.aiBaseSeed = restored
+      ? restored.seeds.ai
+      : variant.seed === undefined ? AI_BASE_SEED : (AI_BASE_SEED ^ variant.seed) >>> 0
+    this.variantLabel = variant.label ?? null
     this.revision = restored ? restored.revision : 0
     this.stats = restored ? restored.stats : EMPTY_SESSION_STATS
     this.safeGateCeiling = hill.spec.safety.referenceGateNumber
     if (restored) {
-      const expectedSessionId = defaultCompetitionSessionIdForHillId(hill.spec.id)
+      const expectedSessionId = sessionId ?? defaultCompetitionSessionIdForHillId(hill.spec.id)
       if (restored.hillId !== hill.spec.id) {
         throw new Error(
           `Zapis z innej skoczni: hillId ${String(restored.hillId)} != ${hill.spec.id}.`,
@@ -281,9 +324,10 @@ export class CompetitionSession {
         entrants,
         hillClass: hill.spec.classification,
         juryGateNumber: hill.spec.compensation.referenceGateNumber,
-        seed: 0x5005,
+        seed: variant.seed ?? 0x5005,
         rulesVersion: 'pkg008-competition-2',
         hillVersion: hill.spec.hillVersion,
+        format: variant.format,
       })
     }
     this.prepareCurrent(enterCurrentlyDown)
@@ -300,7 +344,7 @@ export class CompetitionSession {
       competition: this.state,
       profiles: this.profiles,
       setup: { profileCount: this.profiles.length, difficulty: this.difficulty },
-      seeds: { ai: AI_BASE_SEED, wind: this.state.seed },
+      seeds: { ai: this.aiBaseSeed, wind: this.state.seed },
       versions: {
         rules: MODERN_RULES.version,
         physics: physicsParamsForHill(this.hill.spec).physicsVersion,
@@ -347,12 +391,19 @@ export class CompetitionSession {
     })
   }
 
+  /** Wiersze planszy po serii: tabela albo (KO) pary drabinki. */
+  private summaryRowIds(): readonly (readonly string[])[] {
+    const bracket = this.koBracketView()
+    if (bracket) return bracket.pairs.map((pair) => pair.slots.map((slot) => slot.participantId ?? ''))
+    return this.ranking().map((entry) => [entry.participantId])
+  }
+
   private centerRoundSummaryOnHumans(): void {
-    const standings = this.ranking()
-    const firstHuman = standings.findIndex((entry) => entry.participantId.startsWith('local-'))
+    const rowsIds = this.summaryRowIds()
+    const firstHuman = rowsIds.findIndex((ids) => ids.some((id) => id.startsWith('local-')))
     const rows = this.roundSummaryVisibleRows
     const target = firstHuman < 0 ? 0 : Math.max(0, firstHuman - Math.floor(rows / 2))
-    this.roundSummaryScroll = Math.min(Math.max(0, standings.length - rows), target)
+    this.roundSummaryScroll = Math.min(Math.max(0, rowsIds.length - rows), target)
   }
 
   /** Widok wybiera liczbę wierszy; sesja utrzymuje ten sam limit przy ↑/↓ i po wznowieniu zapisu. */
@@ -365,7 +416,7 @@ export class CompetitionSession {
 
   scrollRoundSummary(delta: number): void {
     if (this.view !== 'round-summary' || !Number.isInteger(delta)) return
-    const total = this.ranking().length
+    const total = this.summaryRowIds().length
     const maximum = Math.max(0, total - this.roundSummaryVisibleRows)
     this.roundSummaryScroll = Math.min(maximum, Math.max(0, this.roundSummaryScroll + delta))
   }
@@ -401,7 +452,7 @@ export class CompetitionSession {
       return
     }
     const initialPlan = createAiPlan(
-      aiSeedForJump(AI_BASE_SEED, entrant.id, this.roundId),
+      aiSeedForJump(this.aiBaseSeed, entrant.id, this.roundId),
       entrant.controller.difficulty,
       this.hill.spec.id,
     )
@@ -728,6 +779,16 @@ export class CompetitionSession {
     })?.distanceHalfMeters ?? null
   }
 
+  /**
+   * P25 — drabinka pokazywana po kwalifikacjach (same pary) i po I serii
+   * (wyniki, zwycięzcy, najlepsi przegrani). W finale i poza KO: `null`.
+   */
+  koBracketView(): KoBracketView | null {
+    const completed = this.lastCompletedRound ?? this.state.pendingRoundSummary
+    if (this.view !== 'round-summary' || (completed !== 'qualification' && completed !== 'first')) return null
+    return buildKoBracketView(this.state, completed === 'first')
+  }
+
   private jumpParticipantId(): string {
     return this.activeEntrant?.id ?? ''
   }
@@ -773,6 +834,9 @@ export class CompetitionSession {
       leaderTotalTenths: leaderTotalTenths(this.state),
       botYieldCount: this.botYieldCount,
       leadingTargetHalfMeters: this.leadingTargetHalfMeters(),
+      format: this.state.format ?? 'standard',
+      variantLabel: this.variantLabel,
+      ko: this.koBracketView(),
       jump: this.jump
         ? {
             phase: this.jump.phase,
@@ -787,6 +851,35 @@ export class CompetitionSession {
           }
         : null,
     }
+  }
+}
+
+/** Widok drabinki z samego stanu konkursu (także dla zapisanej sesji w hubie turnieju). */
+export function buildKoBracketView(state: CompetitionState, resolved: boolean): KoBracketView | null {
+  const bracket = state.ko
+  if (state.format !== 'ko' || !bracket) return null
+  const first = state.rounds.find((round) => round.id === 'first')
+  const winners = new Set(bracket.winners)
+  return {
+    resolved,
+    pairs: bracket.pairs.map((pair) => ({
+      index: pair.index,
+      slots: [pair.first, pair.second].map((participantId) => {
+        const attempt = participantId ? first?.attempts[participantId] : undefined
+        const rank = participantId ? bracket.qualified.indexOf(participantId) : -1
+        return {
+          participantId,
+          name: participantId ? entrantById(state, participantId)?.name ?? participantId : '— BRAK —',
+          koStartNumber: participantId ? bracket.startNumbers[participantId] ?? null : null,
+          qualificationRank: rank >= 0 ? rank + 1 : null,
+          totalTenths: resolved && attempt?.kind === 'score' ? attempt.totalTenths : null,
+          status: resolved ? attempt?.status ?? 'waiting' : 'waiting',
+        }
+      }),
+      winnerId: resolved ? [pair.first, pair.second].find((id) => id !== null && winners.has(id)) ?? null : null,
+    })),
+    luckyLosers: resolved ? bracket.luckyLosers : [],
+    longFallAdvancers: resolved ? bracket.longFallAdvancers : [],
   }
 }
 

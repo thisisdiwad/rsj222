@@ -1,0 +1,9 @@
+# Zależności instaluje `npm ci` (binaria zależą od systemu)
+node_modules/
+# Wyniki uruchomień Playwright/Vite (dowody pakietów trafiają do docs/evidence/)
+test-results/
+test-results-*/
+playwright-report/
+dist/
+# Lokalne logi hooków agenta
+logs/

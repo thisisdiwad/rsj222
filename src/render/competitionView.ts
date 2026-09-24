@@ -12,7 +12,7 @@ import {
 } from './hillView'
 import { drawPixelText, measurePixelText, type PixelTextAlign } from './pixelFont'
 
-const COLOR = {
+export const COLOR = {
   ink: '#07111f',
   panel: '#0c1827',
   panelAlt: '#14233b',
@@ -32,7 +32,7 @@ const DIFFICULTY_LABEL: Readonly<Record<AiDifficulty, string>> = {
   hard: 'TRUDNA',
 }
 
-function clear(context: CanvasRenderingContext2D): void {
+export function clear(context: CanvasRenderingContext2D): void {
   context.imageSmoothingEnabled = false
   context.fillStyle = COLOR.ink
   context.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT)
@@ -40,7 +40,7 @@ function clear(context: CanvasRenderingContext2D): void {
   for (let y = 0; y < VIEW_HEIGHT; y += 4) context.fillRect(0, y, VIEW_WIDTH, 1)
 }
 
-function panel(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+export function panel(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
   context.fillStyle = COLOR.panel
   context.fillRect(x, y, width, height)
   context.strokeStyle = COLOR.dim
@@ -58,7 +58,7 @@ function currentAlign(context: CanvasRenderingContext2D): PixelTextAlign {
   return context.textAlign === 'right' ? 'right' : context.textAlign === 'center' ? 'center' : 'left'
 }
 
-function text(
+export function text(
   context: CanvasRenderingContext2D,
   value: string,
   x: number,
@@ -72,7 +72,7 @@ function text(
   drawPixelText(context, value, x, y - 7 * scale, color, scale, currentAlign(context))
 }
 
-function header(context: CanvasRenderingContext2D, title: string, subtitle: string): void {
+export function header(context: CanvasRenderingContext2D, title: string, subtitle: string): void {
   // Tytuł i podtytuł na osobnych wierszach — przy 480 px szerokości długie
   // podtytuły kolidowałyby z tytułem w jednej linii.
   text(context, title, 18, 16, COLOR.gold, 13)
@@ -81,7 +81,7 @@ function header(context: CanvasRenderingContext2D, title: string, subtitle: stri
   context.fillRect(18, 33, 444, 1)
 }
 
-function points(value: number | null): string {
+export function points(value: number | null): string {
   return value === null ? '—' : `${(value / 10).toFixed(1).replace('.', ',')} pkt`
 }
 
@@ -102,7 +102,7 @@ function statusLabel(status: RankingEntry['status']): string {
   return labels[status]
 }
 
-function fitTableText(value: string, width: number, scale: number): string {
+export function fitTableText(value: string, width: number, scale: number): string {
   if (measurePixelText(value, scale) <= width) return value
   let clipped = value
   while (clipped.length > 0 && measurePixelText(`${clipped}...`, scale) > width) clipped = clipped.slice(0, -1)
@@ -487,7 +487,8 @@ export function drawCompetitionProgress(context: CanvasRenderingContext2D, snaps
       : snapshot.view === 'result'
         ? 'WYNIK SKOKU'
         : 'KONKURS TRWA'
-  header(context, title, `${snapshot.roundLabel} • ${Math.min(snapshot.nextStartIndex, snapshot.roundSize)}/${snapshot.roundSize}`)
+  const variant = snapshot.variantLabel ? `${snapshot.variantLabel} • ` : ''
+  header(context, title, `${variant}${snapshot.roundLabel} • ${Math.min(snapshot.nextStartIndex, snapshot.roundSize)}/${snapshot.roundSize}`)
 
   if (snapshot.view === 'result' && snapshot.lastResult) {
     const result = snapshot.lastResult
@@ -586,7 +587,7 @@ export function drawCompetitionProgress(context: CanvasRenderingContext2D, snaps
     text(context, RESULT_FEEDBACK[snapshot.lastResult.feedbackCode] ?? 'WYNIK ZAPISANY', 240, 247, COLOR.dim, 7, 'center')
   }
   const instruction = snapshot.view === 'finished'
-    ? 'ENTER — MENU'
+    ? (snapshot.variantLabel ? `ENTER — TABELA ${snapshot.format === 'ko' ? 'TURNIEJU' : 'PUCHARU'}` : 'ENTER — MENU')
     : snapshot.view === 'result' || snapshot.view === 'round-summary'
       ? 'ENTER — DALEJ'
       : 'TRWAJĄ SKOKI ZAWODNIKÓW'
