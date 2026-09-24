@@ -14,7 +14,9 @@ import {
   clearPendingRoundSummary,
   competitionStandings,
   confirmWithdrawal,
+  createKothCompetition,
   createStandardCompetition,
+  createTeamCompetition,
   currentParticipantId,
   currentRound,
   leaderTotalTenths,
@@ -34,6 +36,8 @@ import {
   type RankingEntry,
 } from '../sport/competition'
 import { gateCompensationTenths, windCompensationTenths } from '../sport/compensation'
+import { kothStandingRows } from '../sport/koth'
+import { teamStandings, type CompetitionTeam } from '../sport/team'
 import { createCompetitionJumpResult, type CompetitionJumpResult } from '../sport/jumpResult'
 import { solveLeadingTarget } from '../sport/leadingTarget'
 import { meterValueTenthsForK, MODERN_RULES } from '../sport/scoring'
@@ -71,10 +75,26 @@ export type CompetitionView =
   | 'withdraw-confirm'
   | 'finished'
 
-export const ROUND_LABEL: Readonly<Record<CompetitionRoundId, string>> = {
+const ROUND_LABELS: Readonly<Record<string, string>> = {
   qualification: 'KWALIFIKACJE',
   first: 'PIERWSZA SERIA',
+  second: 'DRUGA SERIA',
   final: 'FINAŁ',
+}
+
+/** Nazwa serii na ekranach; seria King of the Hill: „RUNDA n” albo „DOGRYWKA”. */
+export function roundLabel(roundId: CompetitionRoundId, playoff = false): string {
+  const known = ROUND_LABELS[roundId]
+  if (known) return known
+  const number = roundId.replace('koth-', '')
+  return playoff ? `DOGRYWKA (SERIA ${number})` : `RUNDA ${number}`
+}
+
+/** Seria (koth-n) jest dogrywką King of the Hill. */
+export function isKothPlayoff(state: CompetitionState, roundId: CompetitionRoundId): boolean {
+  if (state.format !== 'koth' || !state.koth) return false
+  const index = state.rounds.findIndex((round) => round.id === roundId)
+  return state.koth.kinds[index] === 'playoff'
 }
 
 /** Liczba wierszy planszy round-summary mieszczących się w widoku 480×270. */
@@ -151,12 +171,64 @@ export type CommitRequest = {
   readonly season?: StoredSeason | null
 }
 
-/** Sezon/KO: inna sesja, format i seed; brak pola = konkurs standardowy skoczni. */
+/** Sezon/KO/drużyny/KotH: inna sesja, format i seed; brak pola = konkurs standardowy skoczni. */
 export type CompetitionVariant = {
   readonly format?: CompetitionFormat
   readonly seed?: number
   /** Nagłówek ekranów, np. „PUCHAR 2/4”. */
   readonly label?: string
+  /** P26–P28: gotowa obsada (drużyny albo uczestnicy King of the Hill). */
+  readonly roster?: {
+    readonly entrants: readonly CompetitionEntrant[]
+    readonly teams?: readonly CompetitionTeam[]
+  }
+}
+
+export type TeamTableRow = {
+  readonly teamId: string
+  readonly name: string
+  readonly rank: number
+  readonly human: boolean
+  /** Suma drużyny w kolejnych seriach (null = drużyna nie startowała). */
+  readonly roundTenths: readonly (number | null)[]
+  readonly totalTenths: number
+  readonly members: readonly {
+    readonly name: string
+    readonly human: boolean
+    readonly rounds: readonly (number | string | null)[]
+  }[]
+}
+
+export type TeamTableView = {
+  readonly format: 'team' | 'superteam'
+  readonly roundLabels: readonly string[]
+  readonly rows: readonly TeamTableRow[]
+  /** Liczba drużyn awansujących po ostatniej zamkniętej serii (null = finał/koniec). */
+  readonly advanceLimit: number | null
+}
+
+export type KothRow = {
+  readonly participantId: string
+  readonly name: string
+  readonly human: boolean
+  readonly state: 'winner' | 'in' | 'out'
+  readonly rank: number | null
+  readonly eliminatedInRound: number | null
+}
+
+export type KothView = {
+  readonly roundLabel: string
+  readonly rows: readonly KothRow[]
+  /** Noty zamkniętej (albo bieżącej) serii, od najlepszej. */
+  readonly roundResults: readonly {
+    readonly participantId: string
+    readonly name: string
+    readonly human: boolean
+    readonly totalTenths: number | null
+    readonly status: RankingEntry['status']
+    readonly eliminated: boolean
+  }[]
+  readonly verdict: string
 }
 
 export type KoPairRow = {
@@ -219,6 +291,8 @@ export type CompetitionSessionSnapshot = {
   readonly format: CompetitionFormat
   readonly variantLabel: string | null
   readonly ko: KoBracketView | null
+  readonly teams: TeamTableView | null
+  readonly koth: KothView | null
   readonly jump: {
     readonly phase: string
     readonly tick: number
@@ -230,6 +304,15 @@ export type CompetitionSessionSnapshot = {
     readonly flightSeconds: number
     readonly events: readonly string[]
   } | null
+}
+
+function roundSeedSalt(roundId: string): number {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < roundId.length; index += 1) {
+    hash ^= roundId.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
 }
 
 function entrantById(state: CompetitionState, participantId: string | null): CompetitionEntrant | null {
@@ -318,17 +401,23 @@ export class CompetitionSession {
         return
       }
     } else {
-      const entrants = replaceEntrantsWithProfiles(createFictionalEntrants(difficulty), this.profiles)
-      this.state = createStandardCompetition({
+      const base = {
         id: sessionId ?? defaultCompetitionSessionIdForHillId(hill.spec.id),
-        entrants,
         hillClass: hill.spec.classification,
         juryGateNumber: hill.spec.compensation.referenceGateNumber,
         seed: variant.seed ?? 0x5005,
         rulesVersion: 'pkg008-competition-2',
         hillVersion: hill.spec.hillVersion,
-        format: variant.format,
-      })
+      }
+      const format = variant.format
+      if ((format === 'team' || format === 'superteam') && variant.roster?.teams) {
+        this.state = createTeamCompetition({ ...base, format, entrants: variant.roster.entrants, teams: variant.roster.teams })
+      } else if (format === 'koth' && variant.roster) {
+        this.state = createKothCompetition({ ...base, entrants: variant.roster.entrants })
+      } else {
+        const entrants = replaceEntrantsWithProfiles(createFictionalEntrants(difficulty), this.profiles)
+        this.state = createStandardCompetition({ ...base, entrants, format })
+      }
     }
     this.prepareCurrent(enterCurrentlyDown)
   }
@@ -384,15 +473,22 @@ export class CompetitionSession {
   }
 
   private windFieldForAttempt(): WindField {
+    const roundId = this.roundId
+    const known = roundId === 'qualification' || roundId === 'first' || roundId === 'final'
     return createSeriesWindField({
-      competitionSeed: this.state.seed,
-      roundId: this.roundId,
+      // Dodatkowe serie (II seria Super Team, rundy King of the Hill) dostają
+      // własny deterministyczny seed na bazie profilu I serii; fizyka bez zmian.
+      competitionSeed: known ? this.state.seed : (this.state.seed ^ roundSeedSalt(roundId)) >>> 0,
+      roundId: known ? roundId : 'first',
       attemptIndex: this.state.nextStartIndex,
     })
   }
 
   /** Wiersze planszy po serii: tabela albo (KO) pary drabinki. */
   private summaryRowIds(): readonly (readonly string[])[] {
+    if (this.state.format === 'team' || this.state.format === 'superteam') {
+      return teamStandings(this.state).map((row) => row.members.map((member) => member.participantId))
+    }
     const bracket = this.koBracketView()
     if (bracket) return bracket.pairs.map((pair) => pair.slots.map((slot) => slot.participantId ?? ''))
     return this.ranking().map((entry) => [entry.participantId])
@@ -618,7 +714,11 @@ export class CompetitionSession {
     const recorded = recordAttempt(this.state, attempt)
     this.state = recorded.state
     this.lastCompletedRound = recorded.roundCompleted
-    if (recorded.roundCompleted) {
+    if (recorded.roundCompleted && this.botsFinishAlone()) {
+      this.state = clearPendingRoundSummary(this.state)
+      this.lastCompletedRound = null
+      this.prepareCurrent(false)
+    } else if (recorded.roundCompleted) {
       this.setView(this.state.status === 'active' ? 'round-summary' : 'finished')
       this.centerRoundSummaryOnHumans()
     } else if (pauseForHuman) {
@@ -675,6 +775,17 @@ export class CompetitionSession {
     this.applyRecordedAttempt(attempt, true)
   }
 
+  /**
+   * P28: gdy w King of the Hill nie został żaden człowiek, boty dokańczają
+   * turniej bez zatrzymań na planszach serii — gracz od razu widzi wynik.
+   */
+  private botsFinishAlone(): boolean {
+    const koth = this.state.koth
+    if (this.state.format !== 'koth' || !koth || this.state.status !== 'active') return false
+    const humans = new Set(this.state.entrants.filter((entrant) => entrant.controller.kind === 'human').map((entrant) => entrant.id))
+    return !koth.remaining.some((id) => humans.has(id))
+  }
+
   continueAfterResult(enterCurrentlyDown: boolean): void {
     if (this.view !== 'result' && this.view !== 'round-summary') return
     const confirmedSummary = this.view === 'round-summary'
@@ -711,10 +822,16 @@ export class CompetitionSession {
     this.lastAdministrative = attempt ?? null
     this.lastResult = null
     this.lastCompletedRound = result.roundCompleted
-    this.setView(result.roundCompleted
-      ? (this.state.status === 'active' ? 'round-summary' : 'finished')
-      : 'result')
-    if (result.roundCompleted) this.centerRoundSummaryOnHumans()
+    if (result.roundCompleted && this.botsFinishAlone()) {
+      this.state = clearPendingRoundSummary(this.state)
+      this.lastCompletedRound = null
+      this.prepareCurrent(false)
+    } else {
+      this.setView(result.roundCompleted
+        ? (this.state.status === 'active' ? 'round-summary' : 'finished')
+        : 'result')
+      if (result.roundCompleted) this.centerRoundSummaryOnHumans()
+    }
     this.emitCommit(null, null, true)
   }
 
@@ -727,6 +844,25 @@ export class CompetitionSession {
   }
 
   ranking(): readonly RankingEntry[] {
+    if (this.state.format === 'team' || this.state.format === 'superteam') {
+      return teamStandings(this.state).map((row) => ({
+        participantId: row.teamId,
+        name: row.name,
+        rank: row.rank,
+        totalTenths: row.totalTenths,
+        status: 'landed' as const,
+      }))
+    }
+    if (this.state.format === 'koth') {
+      const view = buildKothView(this.state, this.lastCompletedRound ?? this.state.pendingRoundSummary)
+      return view.rows.map((row) => ({
+        participantId: row.participantId,
+        name: row.name,
+        rank: row.rank,
+        totalTenths: view.roundResults.find((result) => result.participantId === row.participantId)?.totalTenths ?? null,
+        status: view.roundResults.find((result) => result.participantId === row.participantId)?.status ?? 'waiting',
+      }))
+    }
     const completed = this.lastCompletedRound ?? this.state.pendingRoundSummary
     if ((this.view === 'round-summary' || this.state.pendingRoundSummary) && completed) {
       return completed === 'qualification'
@@ -801,7 +937,7 @@ export class CompetitionSession {
       view: this.view,
       status: this.state.status,
       roundId: this.roundId,
-      roundLabel: ROUND_LABEL[this.roundId],
+      roundLabel: roundLabel(this.roundId, isKothPlayoff(this.state, this.roundId)),
       nextStartIndex: this.state.nextStartIndex,
       roundSize: currentRound(this.state).startOrder.length,
       currentParticipantId: entrant?.id ?? null,
@@ -837,6 +973,10 @@ export class CompetitionSession {
       format: this.state.format ?? 'standard',
       variantLabel: this.variantLabel,
       ko: this.koBracketView(),
+      teams: buildTeamTableView(this.state, this.lastCompletedRound ?? this.state.pendingRoundSummary),
+      koth: this.state.format === 'koth'
+        ? buildKothView(this.state, this.lastCompletedRound ?? this.state.pendingRoundSummary)
+        : null,
       jump: this.jump
         ? {
             phase: this.jump.phase,
@@ -880,6 +1020,88 @@ export function buildKoBracketView(state: CompetitionState, resolved: boolean): 
     })),
     luckyLosers: resolved ? bracket.luckyLosers : [],
     longFallAdvancers: resolved ? bracket.longFallAdvancers : [],
+  }
+}
+
+/** P26/P27 — tabela drużynowa z sumami serii i składem każdej drużyny. */
+export function buildTeamTableView(state: CompetitionState, completedRound: CompetitionRoundId | null): TeamTableView | null {
+  if (state.format !== 'team' && state.format !== 'superteam') return null
+  const rounds = state.rounds.filter((round) => round.status !== 'cancelled')
+  const rows = teamStandings(state).map((row): TeamTableRow => ({
+    teamId: row.teamId,
+    name: row.name,
+    rank: row.rank,
+    human: row.human,
+    totalTenths: row.totalTenths,
+    roundTenths: rounds.map((round) => {
+      const team = state.teams?.find((candidate) => candidate.id === row.teamId)
+      // Brak drużyny w serii albo jeszcze żaden jej skok — „—”, nie fałszywe 0,0.
+      if (!team || !team.memberIds.some((id) => round.attempts[id])) return null
+      return team.memberIds.reduce((sum, id) => {
+        const attempt = round.attempts[id]
+        return sum + (attempt?.kind === 'score' ? attempt.totalTenths : 0)
+      }, 0)
+    }),
+    members: row.members.map((member) => ({
+      name: member.name,
+      human: member.human,
+      rounds: member.rounds.filter((_, index) => state.rounds[index]?.status !== 'cancelled'),
+    })),
+  }))
+  const limit = completedRound === 'first' ? (state.format === 'team' ? 8 : 12) : completedRound === 'second' ? 8 : null
+  return {
+    format: state.format,
+    roundLabels: rounds.map((round) => roundLabel(round.id)),
+    rows,
+    advanceLimit: state.status === 'active' ? limit : null,
+  }
+}
+
+/** P28 — plansza eliminacji: kto w grze, kto odpadł, noty zamkniętej serii i werdykt. */
+export function buildKothView(state: CompetitionState, completedRound: CompetitionRoundId | null): KothView {
+  const koth = state.koth
+  const names = new Map(state.entrants.map((entrant) => [entrant.id, entrant]))
+  const human = (id: string) => names.get(id)?.controller.kind === 'human'
+  const roundIndex = completedRound
+    ? state.rounds.findIndex((round) => round.id === completedRound)
+    : state.currentRoundIndex
+  const round = state.rounds[roundIndex] ?? currentRound(state)
+  const eliminatedHere = new Set(koth?.eliminations.find((item) => item.roundNumber === roundIndex + 1)?.ids ?? [])
+  const roundResults = round.startOrder
+    .map((participantId) => {
+      const attempt = round.attempts[participantId]
+      return {
+        participantId,
+        name: names.get(participantId)?.name ?? participantId,
+        human: human(participantId),
+        totalTenths: attempt?.kind === 'score' ? attempt.totalTenths : null,
+        status: attempt?.status ?? 'waiting' as RankingEntry['status'],
+        eliminated: eliminatedHere.has(participantId),
+      }
+    })
+    .sort((left, right) => (right.totalTenths ?? -1) - (left.totalTenths ?? -1))
+  const rows = koth ? kothStandingRows(koth).map((row) => ({
+    ...row,
+    name: names.get(row.participantId)?.name ?? row.participantId,
+    human: human(row.participantId),
+  })) : []
+  const nameList = (ids: readonly string[]) => ids.map((id) => names.get(id)?.name ?? id).join(', ')
+  let verdict = 'SKACZĄ WSZYSCY POZOSTALI • NAJGORSZA NOTA ODPADA'
+  if (koth && completedRound) {
+    const nextKind = koth.kinds[roundIndex + 1]
+    const eliminated = koth.eliminations.find((item) => item.roundNumber === roundIndex + 1)
+    if (koth.winners && koth.winners.length > 1 && !eliminated) verdict = `REMIS WSZYSTKICH → WSPÓLNE ZWYCIĘSTWO: ${nameList(koth.winners)}`
+    else if (eliminated?.reason === 'withdrawn') verdict = `REZYGNACJA — ODPADA: ${nameList(eliminated.ids)}`
+    else if (eliminated?.reason === 'playoff' && eliminated.ids.length > 1) verdict = `PONOWNY REMIS → ODPADAJĄ RAZEM: ${nameList(eliminated.ids)}`
+    else if (eliminated) verdict = `ODPADA: ${nameList(eliminated.ids)}`
+    else if (nextKind === 'playoff') verdict = `REMIS OSTATNICH → DOGRYWKA: ${nameList(state.rounds[roundIndex + 1]?.startOrder ?? [])}`
+    if (koth.winners?.length === 1) verdict += ` • WYGRYWA: ${nameList(koth.winners)}`
+  }
+  return {
+    roundLabel: roundLabel(round.id, isKothPlayoff(state, round.id)),
+    rows,
+    roundResults,
+    verdict,
   }
 }
 

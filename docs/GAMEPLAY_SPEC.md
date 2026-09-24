@@ -127,7 +127,7 @@ Oprócz wektorów syntetycznych P13 odtwarza co najmniej pięć pełnych wierszy
 | Trening | 1 aktywny profil, dowolne powtórzenia, ustawienia warunków | Statystyki treningowe, brak rekordu konkursowego |
 | Konkurs standardowy | Pula 75, kwalifikacje do 50; mamut do 40; następnie finał 30 | Suma dwóch konkursowych skoków |
 | Szybki lokalny | 1–10 ludzi, opcjonalne AI; dwie serie bez kwalifikacji | Wariant rozrywkowy, osobny znacznik formatu |
-| Puchar sezonowy | 20 konkursów; dostępny zapis pomiędzy próbami | Punkty pucharowe, nie suma metrów |
+| Puchar sezonowy | Po jednym konkursie na każdej skoczni listy PŚ (H01–H32 po P43); dostępny zapis pomiędzy próbami | Punkty pucharowe, nie suma metrów |
 | Własny kalendarz | 1–40 konkursów z biblioteki; można powtarzać obiekt | Oddzielna tabela konkretnego zestawu |
 | Cztery skocznie | Cztery konkursy KO; 50→25 zwycięzców+5 przegranych | Suma punktów skoków czterech konkursów |
 | Drużynowy | Czterech zawodników, dwie serie; finał najlepszych 8 ekip | Suma skoków; kolejność grup finału aktualizowana |
@@ -143,6 +143,13 @@ Punkty sezonu indywidualnego za miejsca 1–30:
 Remis w konkursie daje punkty przypisane wspólnemu miejscu; kolejne miejsca są pominięte. Konkurs anulowany (seria nieukończona) nie daje punktów. Klucz zestawu (własny kalendarz) obejmuje format, kolejność konkursów z wersjami skoczni, wersje zasad i fizyki oraz liczbę graczy i trudność AI; ten sam klucz daje te same warunki konkursów. Remis całego pucharu rozstrzygają liczby zwycięstw, drugich miejsc itd. Przy nadal równych osiągnięciach gra zachowuje wspólne miejsce (ADAPT), a potrzebną kolejność startową losuje powtarzalnie z seeda; F03 §3.1.3 odrębnie przewiduje losowanie kolejności startu przy nierozstrzygniętej równości. Tabela pucharu i suma skoków turnieju czterech skoczni są różnymi polami.
 
 Domyślna drużyna hotseat może zawierać ludzi i boty; ten model obsady jest adaptacją lokalnej gry. W Super Team można sterować oboma skoczkami jednego zespołu. W konfiguracji wymagana czytelna lista, kto steruje każdym miejscem.
+
+Drużyny, Super Team i King of the Hill (zaimplementowane w PKG-015; F03 §2.2.2, §3.2.3, §3.2.4, ICR 453, 433.4):
+- **Drużynowy:** 12 drużyn × 4 (grupy I–IV, ICR 453.4); seria idzie grupami, w grupie drużyny w stałej kolejności konfiguracji (ADAPT zamiast rankingu narodów F03 §3.2.3). Po I serii awansuje 8 drużyn; przed **każdą** grupą finału kolejność to odwrócona bieżąca klasyfikacja (F03 §3.2.3.1), remis — zachowana poprzednia kolejność (ADAPT). Wynik to suma wszystkich skoków; DNS/NPS/DSQ/rezygnacja dają 0 za ten skok, drużyna startuje dalej.
+- **Super Team:** 16 zespołów × 2, trzy serie, wszyscy → 12 → 8; II seria grupami w kolejności I serii (F03 nie określa kolejności drużyn — ADAPT), finał jak wyżej: każda grupa w odwrotnej bieżącej klasyfikacji. Odwołana II seria lub finał kończy konkurs wynikiem ukończonych serii.
+- **Remis na granicy awansu (rozstrzygnięty źródłowo):** ICR 433.4 — równa nota to to samo miejsce, a F03 §3.2.3.1 dopuszcza do finału „leading eight” (analogicznie „best twelve”): drużyny ze wspólnym 8./12. miejscem awansują wszystkie. Tabela: najpierw drużyny, które doszły dalej, potem suma; remis → wspólne miejsce.
+- **Obsada:** każde miejsce to bot albo profil hotseat; profil może zająć tylko jedno miejsce (bez duplikatów zawodnika), start wymaga co najmniej jednego gracza. Oba miejsca zespołu Super Team mogą być ludzkie (np. dwa profile jednej osoby).
+- **King of the Hill (ADAPT, rozrywkowy):** 2–10 uczestników, gracze przed botami. W rundzie skaczą wszyscy pozostali, najgorsza nota odpada; status administracyjny jest gorszy od każdej noty. Remis ostatnich → jedna dogrywka tych osób; ponowny remis ostatnich w dogrywce eliminuje całą grupę; remis wszystkich pozostałych → wspólne zwycięstwo. Rezygnacja (Q) to wyjście z gry — odpada od razu, zamiast eliminacji najsłabszego w tej rundzie. Gdy w grze nie ma już człowieka, boty dokańczają bez zatrzymań na planszach. Kolejna runda: najsłabsi z poprzedniej rundy eliminacyjnej skaczą pierwsi. Liczba rund ≤ 2·(n−1).
 
 ## 7. Procedura startu i jury
 

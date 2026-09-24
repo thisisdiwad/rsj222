@@ -1,37 +1,55 @@
 # Plan zawartości i produkcji assetów
 
-Cel pełnego v1: **20 osobnych skoczni**, każdy obiekt z własną geometrią i oznaczeniami, sześć rodzin krajobrazów, komplet ekranów oraz trybów z GDD. Poniżej jest lista produkcyjna; nie twierdzimy, że wszystkie parametry i fotografie są już zebrane.
+Cel pełnego v1 (decyzja użytkownika z 24.09.2026, D20): **wszystkie skocznie, na których rozegrano zawody Pucharu Świata FIS w skokach narciarskich w trzech ostatnich zakończonych sezonach zimowych — 2023/24, 2024/25 i 2025/26** — mężczyźni i kobiety, skoki i loty. Obecnie to lista robocza **H01–H32**. Każdy obiekt ma własną geometrię i oznaczenia, a do tego gra potrzebuje rodzin krajobrazów, kompletu ekranów i trybów z GDD. Poniżej jest lista produkcyjna. Nie twierdzimy, że wszystkie parametry i fotografie są już zebrane.
 
 ## 1. Obiekty
 
-Skocznie są grywalnymi adaptacjami inspirowanymi realnymi współczesnymi miejscami. **K i HS wybranego wariantu muszą być prawidłowe**; inne wymiary i balans mogą być ADAPT/TUNE. Wymagamy rozpoznawalnego, zróżnicowanego wyglądu i uczciwego odróżnienia gry od homologowanego profilu. Nie łączymy historycznych K z SJ3 z aktualnym wyglądem obiektu.
+Skocznie są grywalnymi adaptacjami inspirowanymi realnymi współczesnymi miejscami. **K i HS wybranego wariantu muszą być prawidłowe**; inne wymiary i balans mogą być ADAPT/TUNE. Wymagamy rozpoznawalnego, zróżnicowanego wyglądu i uczciwego odróżnienia gry od homologowanego profilu. Nie łączymy historycznych K z SJ3 z aktualnym wyglądem obiektu. **Każda nowa skocznia powstaje według tych samych zasad co H01–H04:** karta źródeł, pełny cykl D/G/A/V (IMPLEMENTATION_PLAN §6), odrębna sylwetka i paleta, test „rekord + 2 m na dwie nogi”, determinizm, jeden obiekt na pakiet i werdykt VISUAL wyłącznie od użytkownika (AGENTS.md).
 
-| ID | Miejsce / wariant | Etap | Parametry potwierdzone w tym researchu |
-| ---| ---| ---| ---|
-| H01 | Lillehammer, normalna | MVP | K90/HS98, F09 |
-| H02 | Zakopane, duża | MVP | K125/HS140, F10 |
-| H03 | Oberstdorf, duża | MVP | K120/HS137, F11 |
-| H04 | Planica, mamut | MVP | K200/HS240, F12 |
-| H05 | Garmisch-Partenkirchen, duża | v1 | Do karty źródłowej |
-| H06 | Innsbruck, duża | v1 | Do karty źródłowej |
-| H07 | Bischofshofen, duża | v1 | Do karty źródłowej |
-| H08 | Wisła, duża | v1 | Do karty źródłowej |
-| H09 | Szczyrk, normalna | v1 | Do karty źródłowej |
-| H10 | Lahti, duża | v1 | Do karty źródłowej |
-| H11 | Ruka, duża | v1 | Do karty źródłowej |
-| H12 | Oslo/Holmenkollen, duża | v1 | Do karty źródłowej |
-| H13 | Lillehammer, duża | v1 | Do karty źródłowej |
-| H14 | Falun, duża | v1 | Do karty źródłowej |
-| H15 | Engelberg, duża | v1 | Do karty źródłowej |
-| H16 | Titisee-Neustadt, duża | v1 | Do karty źródłowej |
-| H17 | Klingenthal, duża | v1 | Do karty źródłowej |
-| H18 | Sapporo, duża | v1 | Do karty źródłowej |
-| H19 | Kulm, mamut | v1 | K200/HS235, F08 |
-| H20 | Vikersund, mamut | v1 | Do karty źródłowej |
+Kolumna „PŚ 2023/24–2025/26” jest **robocza (UNRESOLVED do P43)**. Zestawiłem ją z wyników wyszukiwania i komunikatów FIS, bez bezpośredniego dostępu do kalendarzy i protokołów FIS: sieć środowiska blokowała strony FIS i Wikipedii. Oznaczenia: M — mężczyźni, K — kobiety.
 
-Lista miejsc jest DESIGN. Pełne wartości geometrii, belki, P/U i fall line nie wynikają z samego K/HS. Dla H05–H20 aktualne wartości sprawdza się w zadaniu tworzenia danej karty. Przy braku wiarygodnego profilu oznaczyć rekonstrukcję; nie wstawiać losowej krzywej pod prawdziwą nazwą. Zamiana miejsca wymaga aktualizacji listy, nie cichego usunięcia skoczni.
+| ID | Miejsce / wariant | Etap | PŚ 2023/24–2025/26 (robocze) | Parametry potwierdzone w tym researchu |
+| ---| ---| ---| ---| ---|
+| H01 | Lillehammer, normalna | MVP | K | K90/HS98, F09 |
+| H02 | Zakopane, duża | MVP | M | K125/HS140, F10 |
+| H03 | Oberstdorf, duża | MVP | M, K | K120/HS137, F11 |
+| H04 | Planica, mamut (Letalnica) | MVP | M | K200/HS240, F12 |
+| H05 | Garmisch-Partenkirchen, duża | v1 | M, K | Do karty źródłowej |
+| H06 | Innsbruck, duża | v1 | M | Do karty źródłowej |
+| H07 | Bischofshofen, duża | v1 | M | Do karty źródłowej |
+| H08 | Wisła, duża | v1 | M, K | Do karty źródłowej |
+| H09 | Szczyrk, normalna | v1 | M 2023/24 — do weryfikacji: konkurs mógł zostać odwołany po serii kwalifikacyjnej | Do karty źródłowej |
+| H10 | Lahti, duża | v1 | M, K | Do karty źródłowej |
+| H11 | Ruka, duża | v1 | M | Do karty źródłowej |
+| H12 | Oslo/Holmenkollen, duża | v1 | M, K | Do karty źródłowej |
+| H13 | Lillehammer, duża | v1 | M | Do karty źródłowej |
+| H14 | Falun, duża | v1 | M, K (2025/26) | Do karty źródłowej |
+| H15 | Engelberg, duża | v1 | M, K | Do karty źródłowej |
+| H16 | Titisee-Neustadt, duża | v1 | M, K (2024/25) | Do karty źródłowej |
+| H17 | Klingenthal, duża | v1 | M (2023/24, 2025/26) | Do karty źródłowej |
+| H18 | Sapporo (Ōkurayama), duża | v1 | M, K | Do karty źródłowej |
+| H19 | Kulm (Bad Mitterndorf), mamut | v1 | M (PŚ 2025/26; 2024 — MŚ w lotach) | K200/HS235, F08 |
+| H20 | Vikersund, mamut | v1 | M, K (loty kobiet) | Do karty źródłowej |
+| H21 | Willingen, duża | v1 | M, K | Do karty źródłowej |
+| H22 | Lake Placid, duża | v1 | M, K | Do karty źródłowej |
+| H23 | Trondheim (Granåsen), duża | v1 | M, K (Raw Air 2024, 2026) | Do karty źródłowej |
+| H24 | Trondheim (Granåsen), normalna | v1 | K — do weryfikacji | Do karty źródłowej |
+| H25 | Oberstdorf, mamut (Heini-Klopfer) | v1 | M 2024/25 — do weryfikacji (2026 — MŚ w lotach) | Do karty źródłowej |
+| H26 | Planica, duża (Bloudkova velikanka) | v1 | K, M — do weryfikacji | Do karty źródłowej |
+| H27 | Villach, normalna | v1 | K | Do karty źródłowej |
+| H28 | Hinzenbach, normalna | v1 | K | Do karty źródłowej |
+| H29 | Ljubno, normalna | v1 | K | Do karty źródłowej |
+| H30 | Zaō, normalna | v1 | K | Do karty źródłowej |
+| H31 | Râșnov, normalna | v1 | K (2023/24, 2024/25) | Do karty źródłowej |
+| H32 | Zhangjiakou, wariant do ustalenia | v1 | K (2025/26) — do weryfikacji | Do karty źródłowej |
 
-Wczesny prototyp używa technicznej własnej K120/HS134, bez nazwy prawdziwego obiektu. Po zatwierdzeniu modelu zostaje zastąpiony H03; techniczna skocznia nie liczy się do dwudziestu.
+Poza listą: Predazzo gościło igrzyska 2026 i letnie Grand Prix, ale według FIS nie było tam PŚ w 2025. MŚ w Trondheim (2025) i MŚ w lotach (Kulm 2024, Oberstdorf 2026) nie są zawodami PŚ. Wstępne źródła: [FIS — kalendarz PŚ 2025/26](https://www.fis-ski.com/ski-jumping/news/2024-25/ski-jumping-world-cup-calendar-2025-2026), [FIS — zapowiedź 2024/25](https://www.fis-ski.com/ski-jumping/news/2024-25/ski-jumping-world-cup-season-preview-2024-25), [FIS — brak PŚ w Predazzo w 2025](https://www.fis-ski.com/ski-jumping/news/2024-25/no-ski-jumping-world-cup-in-predazzo-val-di-fiemme-in-2025), [FIS — Villach 2024/25](https://www.fis-ski.com/ski-jumping/news/2024-25/pinkelnig-produces-awesome-villach-victory), [FIS — Ljubno 2025/26](https://www.fis-ski.com/ski-jumping/news/2025-26/fighting-nika-prevc-lands-comeback-crown-in-ljubno), [FIS — wyniki Zaō 2025/26](https://www.fis-ski.com/DB/general/results.html?sectorcode=JP&raceid=7543), [FIS — wyniki Râșnov 2024/25](https://www.fis-ski.com/DB/general/results.html?sectorcode=JP&raceid=7094).
+
+**P43 zamyka listę**, zanim powstanie pierwsza nowa karta (PKG-017). Na podstawie oficjalnych kalendarzy i protokołów FIS (mężczyźni i kobiety, skoki i loty) potwierdza każdy obiekt i konkretny wariant (normalna/duża/mamut) oraz jego aktualne K/HS. Obiekt, na którym nie rozegrano konkursu PŚ (np. tylko odwołany konkurs albo jedynie MŚ lub GP), jest usuwany z listy z krótkim uzasadnieniem. Obiekt pominięty w tej liście dostaje kolejny ID (H33+) i własny pakiet w mapie PACKAGE_WORKFLOW.md. Zaakceptowane H01–H04 nie są przerabiane.
+
+Lista miejsc jest DESIGN. Pełne wartości geometrii, belki, P/U i fall line nie wynikają z samego K/HS. Dla H05–H32 aktualne wartości sprawdza się w zadaniu tworzenia danej karty. Przy braku wiarygodnego profilu oznaczyć rekonstrukcję; nie wstawiać losowej krzywej pod prawdziwą nazwą. Zamiana miejsca wymaga aktualizacji listy, nie cichego usunięcia skoczni.
+
+Wczesny prototyp używa technicznej własnej K120/HS134, bez nazwy prawdziwego obiektu. Po zatwierdzeniu modelu zostaje zastąpiony H03; techniczna skocznia nie liczy się do listy obiektów PŚ.
 
 ## 2. Cztery pierwsze karty danych
 
@@ -63,13 +81,13 @@ Jeżeli nie można potwierdzić K/HS wybranego wariantu, nie nazywać adaptacji 
 
 Jedna geometria, mapa pomiarowa, plik ustawień wiatru/belek, atlas konstrukcji i charakterystycznych elementów, własna paleta, miniatura do wyboru skoczni. Każdy obiekt ma odrębną sylwetkę, detale otoczenia i kolorystykę; fotografia realnej skoczni może być inspiracją, ale nie jest wymagana. Oświetlenie nie przesuwa kolizji; elementy stadionu nie zasłaniają trajektorii.
 
-Produkcja: karta źródeł → profil techniczny → skoki kontrolne → szkic kompozycji → pixel art 960×540 → atlas → integracja → nagranie → odbiór. Nie generować dwudziestu tła przed ustaleniem skali kamery i sylwetki skoczka.
+Produkcja: karta źródeł → profil techniczny → skoki kontrolne → szkic kompozycji → pixel art 960×540 → atlas → integracja → nagranie → odbiór. Nie generować teł całej listy przed ustaleniem skali kamery i sylwetki skoczka.
 
 ## 5. Zawodnicy i kalendarze
 
 75 bazowych fikcyjnych zawodników; do 10 miejsc zastępowanych przez ludzi. Profile AI mają umiejętność timingu, szybkość korekty, tolerancję ryzyka i powtarzalność. Każda trudność ma ustaloną dystrybucję parametrów, a nie mnożnik punktów. Wygląd wykorzystuje jeden poprawny bank animacji i kombinacje masek kolorów.
 
-Kalendarz v1:20 konkursów, każdy z listy raz; cztery skocznie H03/H05/H06/H07 tworzą spójny osobny turniej. Nie nazywamy tego dokładną repliką sezonu 2026/27. Edytor kalendarza pozwala wybrać 1–40 konkursów, ułożyć kolejność i zapisać zestaw. Klucz tabeli rekordów kalendarza obejmuje kolejność skoczni, wersje zasad i ustawienia trudności.
+Kalendarz v1: po jednym konkursie na każdej skoczni z listy (po P43: H01–H32 lub zaktualizowana liczba); cztery skocznie H03/H05/H06/H07 tworzą spójny osobny turniej. Nie nazywamy tego dokładną repliką sezonu 2026/27. Edytor kalendarza pozwala wybrać 1–40 konkursów, ułożyć kolejność i zapisać zestaw. Klucz tabeli rekordów kalendarza obejmuje kolejność skoczni, wersje zasad i ustawienia trudności.
 
 Drużyny: 16 bazowych ekip po 4 miejsca (część zawodników z tej samej puli), Super Team z parami z puli. Obsada drużyn jest walidowana pod kątem unikalności w ramach konkursu. Tryby nie wymagają realnych reprezentacji ani kompletnej bieżącej listy zawodników.
 

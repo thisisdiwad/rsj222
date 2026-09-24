@@ -8,7 +8,7 @@ w starszych raportach są historyczne (praca lokalna przed 24.09.2026) — nie d
 Pakiet docelowy: PKG-015
 Zakres: P26, P27, P28
 Z `docs/IMPLEMENTATION_PLAN.md`: drużyny czteroosobowe, Super Team i King of the Hill.
-Nie zaczynaj P29+, P43, H05–H32 ani nowych skoczni.
+Nie zaczynaj P29+, H05–H20 ani nowych skoczni.
 
 ## Przygotowanie środowiska
 
@@ -48,12 +48,6 @@ Nie zaczynaj P29+, P43, H05–H32 ani nowych skoczni.
 - Ekrany PKG-014 (hub pucharu/turnieju, edytor kalendarza, drabinka KO) mają
   **VISUAL USER PASS 24.09.2026** („Akceptuję wygląd ekranów, zamknij PKG-014”); zrzuty w `docs/evidence/PKG-014/screens/`
   są wzorcem stylu dla nowych ekranów drużyn i King of the Hill.
-- **Plan rozszerzony 24.09.2026 (D20, AGENTS.md):** pełne v1 obejmuje wszystkie skocznie,
-  na których rozegrano zawody PŚ w sezonach 2023/24–2025/26 (M i K, skoki i loty) — robocza
-  lista H01–H32 w `docs/CONTENT_PLAN.md` §1. Każda powstaje jak H01–H04 (jeden obiekt na pakiet,
-  D/G/A/V, VISUAL od użytkownika). Mapa: PKG-016 = P29–P31, **PKG-017 = P43** (źródłowa
-  weryfikacja listy i K/HS), PKG-018–045 = H05–H32, PKG-046–048 = P33–P40. Ten pakiet tego
-  nie realizuje; drużyny i KotH mają działać na dowolnej skoczni z katalogu `src/app/hills.ts`.
 - Ostatnia bramka: `npm run typecheck` PASS, `npm test` 41 plików/355 PASS, `npm run build` PASS,
   Playwright `season.spec.ts` 3/3 i `shell.spec.ts` 5/5 PASS. Dowody: `docs/evidence/PKG-014/REPORT.md`.
   Zewnętrzny PLAYABILITY NOT RUN.

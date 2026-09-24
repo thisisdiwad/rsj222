@@ -24,6 +24,7 @@ Docelowo komputer z klawiaturą, Windows/macOS/Linux przez współczesną przegl
 | U10 | Wyższa rozdzielczość, bardziej szczegółowa i realistyczna grafika przy zachowaniu pixel artu | Roboczo 960×540; wiarygodna geometria i otoczenie, świadomie rysowane piksele, kontrola czytelności w ruchu |
 | U11 | Po każdym pakiecie prompt dla nowej sesji wykonującej kolejny pakiet | Obowiązkowy raport, aktualny stan, sprawdzony zakres następnej sesji i zapis promptu zgodnie z PACKAGE_WORKFLOW.md |
 | U12 | Prosta realizacja, oszczędność czasu i tokenów, review wyłącznie po całym pakiecie | Jedno końcowe review, celowane testy, brak zbędnych abstrakcji i powtarzania audytów; reguła w AGENTS.md |
+| U13 | Wszystkie skocznie, na których rozegrano zawody PŚ w skokach w trzech ostatnich sezonach (2023/24–2025/26), tworzone tak jak H01–H04 | Zweryfikowana lista w CONTENT_PLAN §1 (P43); każdy obiekt z kartą, cyklem D/G/A/V, poprawnym K/HS, własną oprawą i odbiorem VISUAL użytkownika |
 
 ## 3. Filary
 
@@ -50,10 +51,10 @@ Przed skokiem potrzebna jest decyzja o starcie, w skoku precyzja, po skoku zrozu
 | ---| ---| ---|
 | Prototyp rdzenia | Jedna robocza K120/HS134, pięć akcji, wiatr, oba lądowania, współczesne punkty długości/stylu, retry; oznaczenia techniczne z danych | Czy skakanie jest czytelne i daje przestrzeń do nauki; pełne kompensaty i produkcyjne linie dochodzą w P13–P14 |
 | Wersja podstawowa (MVP) | Cztery współczesne obiekty normalne/duże/mamucie, trening, pojedynczy konkurs, 1–10 graczy, AI, zapis, replay, rekompensaty, reprezentatywna oprawa | Czy cała mała gra działa i jest warta rozbudowy |
-| Pełne v1 | 20 skoczni, puchar sezonowy, własny kalendarz, turniej czterech skoczni, drużyny czteroosobowe i Super Team, King of the Hill; profile, rekordy, statystyki, audio, offline | Kompletny produkt zgodnie z dokumentacją |
+| Pełne v1 | Wszystkie skocznie PŚ z sezonów 2023/24–2025/26 (lista H01–H32 po P43), puchar sezonowy, własny kalendarz, turniej czterech skoczni, drużyny czteroosobowe i Super Team, King of the Hill; profile, rekordy, statystyki, audio, offline | Kompletny produkt zgodnie z dokumentacją |
 | Po v1 | Edytor geometrii, zewnętrzne paczki skoczni, ewentualna dystrybucja społecznościowa | Rozszerzenia, których v1 nie potrzebuje do spełnienia obietnicy |
 
-Pełne v1 **nie oznacza wyłącznie MVP**. Wszystkie tryby z trzeciego wiersza są częścią planu. Edytor skoczni jest świadomie odłożony; własny kalendarz z gotowych 20 obiektów jest w v1.
+Pełne v1 **nie oznacza wyłącznie MVP**. Wszystkie tryby z trzeciego wiersza są częścią planu. Edytor skoczni jest świadomie odłożony; własny kalendarz z gotowych obiektów listy jest w v1.
 
 ## 6. Rozgrywka i trudność
 
@@ -93,7 +94,7 @@ Sieciowy multiplayer, globalna tabela wyników, backend, konta, płatności, gra
 
 ## 11. Definition of Done produktu
 
-Pełny zestaw 20 skoczni i wszystkich trybów v1; brak placeholderów na normalnej ścieżce gracza; menu, gra i zapis działają klawiaturą; testy reguł i przeglądarek przechodzą; reprezentatywne skoki obejrzane w ruchu; odbiór grywalności posiada rzeczywiste obserwacje graczy. Build działa z podkatalogu, a instrukcja publikacji i kopii zapisów jest gotowa. Aktualne dowody i znane ograniczenia trafiają do dokumentacji wydania.
+Pełny zestaw skoczni PŚ z trzech ostatnich sezonów (U13) i wszystkich trybów v1; brak placeholderów na normalnej ścieżce gracza; menu, gra i zapis działają klawiaturą; testy reguł i przeglądarek przechodzą; reprezentatywne skoki obejrzane w ruchu; odbiór grywalności posiada rzeczywiste obserwacje graczy. Build działa z podkatalogu, a instrukcja publikacji i kopii zapisów jest gotowa. Aktualne dowody i znane ograniczenia trafiają do dokumentacji wydania.
 
 Zaliczenie kompilacji nie zastępuje oceny grafiki, czytelności ani przyjemności z gry. Szczegóły w [QA](QA_ACCEPTANCE.md).
 

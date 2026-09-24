@@ -1,6 +1,8 @@
 /**
  * PKG-005 / P16 — mały reducer jednego standardowego konkursu.
  * PKG-014 / P25 — ten sam przebieg w formacie KO (pary i najlepsi przegrani).
+ * PKG-015 / P26–P28 — drużyny (grupy, finał 8), Super Team (wszyscy→12→8)
+ * i King of the Hill (eliminacje); logika formatów w `team.ts` i `koth.ts`.
  *
  * Moduł nie zna DOM, renderera ani zegara. Każdy slot serii jest rozliczany
  * najwyżej raz, a statusy administracyjne nigdy nie udają wyniku zero.
@@ -14,15 +16,31 @@ import {
   resolveKoFirstRound,
   type KoBracket,
 } from './ko'
+import {
+  groupedStartOrder,
+  regroupsBeforeEachGroup,
+  reorderRemainingGroups,
+  reverseStandingTeamOrder,
+  teamAdvanceLimit,
+  teamAdvancers,
+  validateTeams,
+  type CompetitionTeam,
+  type TeamFormat,
+} from './team'
+import { createKothState, kothRoundId, resolveKothRound, type KothState } from './koth'
 
-export type CompetitionRoundId = 'qualification' | 'first' | 'final'
+export type CompetitionRoundId = 'qualification' | 'first' | 'second' | 'final' | `koth-${number}`
 export type CompetitionStatus = 'active' | 'complete' | 'cancelled'
 export type RoundStatus = 'active' | 'complete' | 'cancelled'
 export type AdministrativeStatus = 'dns' | 'nps' | 'dsq' | 'withdrawn'
 export type ScoredStatus = 'landed' | 'fall'
 export type AiDifficulty = 'easy' | 'normal' | 'hard'
-/** `standard`: 50/40→30; `ko`: dokładnie 50, 25 par + 5 najlepszych przegranych. */
-export type CompetitionFormat = 'standard' | 'ko'
+/**
+ * `standard`: 50/40→30; `ko`: dokładnie 50, 25 par + 5 najlepszych przegranych;
+ * `team`: 4 w drużynie, finał 8; `superteam`: 2 w drużynie, wszyscy→12→8;
+ * `koth`: 2–10 uczestników, najgorszy odpada.
+ */
+export type CompetitionFormat = 'standard' | 'ko' | TeamFormat | 'koth'
 
 export type EntrantController =
   | { readonly kind: 'ai'; readonly difficulty: AiDifficulty }
@@ -112,6 +130,10 @@ export type CompetitionState = {
   readonly format?: CompetitionFormat
   /** Drabinka KO: ustalana po kwalifikacjach, rozstrzygana po I serii. */
   readonly ko?: KoBracket | null
+  /** Drużyny (team/superteam) w kolejności startu I serii. */
+  readonly teams?: readonly CompetitionTeam[]
+  /** Stan eliminacji King of the Hill. */
+  readonly koth?: KothState
 }
 
 export type RankingEntry = {
@@ -131,8 +153,10 @@ function event(state: CompetitionState, type: CompetitionEvent['type'], detail: 
   return { sequence: state.events.length, type, detail }
 }
 
-function requireEntrants(entrants: readonly CompetitionEntrant[]): void {
-  if (entrants.length !== 75) throw new Error(`Standardowy konkurs wymaga 75 miejsc, otrzymano ${entrants.length}.`)
+function requireEntrants(entrants: readonly CompetitionEntrant[], expectedCount: number | null = 75): void {
+  if (expectedCount !== null && entrants.length !== expectedCount) {
+    throw new Error(`Standardowy konkurs wymaga ${expectedCount} miejsc, otrzymano ${entrants.length}.`)
+  }
   const ids = new Set<string>()
   const numbers = new Set<number>()
   for (const entrant of entrants) {
@@ -204,6 +228,82 @@ export function createStandardCompetition(input: {
     ...initial,
     events: [event(initial, 'competition-created', `75 miejsc${formatLabel}, belka jury ${input.juryGateNumber}`)],
   }
+}
+
+type BaseCompetitionInput = {
+  readonly id: string
+  readonly hillClass: CompetitionState['hillClass']
+  readonly juryGateNumber: number
+  readonly seed: number
+  readonly rulesVersion: string
+  readonly hillVersion: string
+}
+
+function baseState(
+  input: BaseCompetitionInput,
+  entrants: readonly CompetitionEntrant[],
+  firstRound: { readonly id: CompetitionRoundId; readonly startOrder: readonly string[] },
+  extra: Partial<CompetitionState>,
+  description: string,
+): CompetitionState {
+  if (!input.id) throw new Error('Konkurs wymaga identyfikatora.')
+  if (!Number.isInteger(input.juryGateNumber) || input.juryGateNumber < 1) {
+    throw new Error('Numer belki jury musi być dodatnią liczbą całkowitą.')
+  }
+  const initial: CompetitionState = {
+    id: input.id,
+    status: 'active',
+    hillClass: input.hillClass,
+    entrants: [...entrants].sort((left, right) => left.startNumber - right.startNumber),
+    rounds: [{ id: firstRound.id, status: 'active', startOrder: firstRound.startOrder, attempts: {}, discardedAttemptCount: 0 }],
+    currentRoundIndex: 0,
+    nextStartIndex: 0,
+    juryGateNumber: input.juryGateNumber,
+    withdrawalRequestParticipantId: null,
+    pendingRoundSummary: null,
+    seed: input.seed >>> 0,
+    versions: { rules: input.rulesVersion, hill: input.hillVersion },
+    events: [],
+    ...extra,
+  }
+  return { ...initial, events: [event(initial, 'competition-created', `${description}, belka jury ${input.juryGateNumber}`)] }
+}
+
+/**
+ * P26/P27 — konkurs drużynowy albo Super Team. Kolejność drużyn w I serii
+ * to kolejność listy `teams` (ADAPT F03 §3.2.3: bez rankingu narodów gra
+ * przyjmuje stałą, jawną kolejność konfiguracji).
+ */
+export function createTeamCompetition(input: BaseCompetitionInput & {
+  readonly format: TeamFormat
+  readonly entrants: readonly CompetitionEntrant[]
+  readonly teams: readonly CompetitionTeam[]
+}): CompetitionState {
+  requireEntrants(input.entrants, null)
+  validateTeams(input.format, input.teams, input.entrants)
+  const label = input.format === 'team' ? 'drużynowy' : 'Super Team'
+  return baseState(
+    input,
+    input.entrants,
+    { id: 'first', startOrder: groupedStartOrder(input.teams) },
+    { format: input.format, teams: input.teams },
+    `${label}: ${input.teams.length} drużyn`,
+  )
+}
+
+/** P28 — King of the Hill: I seria w kolejności numerów startowych. */
+export function createKothCompetition(input: BaseCompetitionInput & {
+  readonly entrants: readonly CompetitionEntrant[]
+}): CompetitionState {
+  requireEntrants(input.entrants, null)
+  const ordered = [...input.entrants].sort((left, right) => left.startNumber - right.startNumber).map((entrant) => entrant.id)
+  return baseState(
+    input,
+    input.entrants,
+    { id: kothRoundId(1), startOrder: ordered },
+    { format: 'koth', koth: createKothState(ordered) },
+    `King of the Hill: ${ordered.length} uczestników`,
+  )
 }
 
 function validateAttempt(attempt: CompetitionAttempt): void {
@@ -321,6 +421,8 @@ function finishRound(state: CompetitionState): RecordAttemptResult {
     return { state: { ...nextState, status: 'complete' }, roundCompleted: round.id }
   }
   if (state.format === 'ko') return openNextKoRound(nextState, completed)
+  if (state.format === 'team' || state.format === 'superteam') return openNextTeamRound(nextState, completed, state.format)
+  if (state.format === 'koth') return openNextKothRound(nextState)
 
   const limit = round.id === 'qualification'
     ? (state.hillClass === 'flying' ? 40 : 50)
@@ -356,13 +458,14 @@ function openNextRound(
   completed: CompetitionRound,
   startOrder: readonly string[],
   ko: KoBracket | null,
+  nextId: CompetitionRoundId = completed.id === 'qualification' ? 'first' : 'final',
 ): RecordAttemptResult {
   const withBracket = ko ? { ...state, ko } : state
   if (startOrder.length === 0) {
     return { state: { ...withBracket, status: 'complete' }, roundCompleted: completed.id }
   }
   const nextRound: CompetitionRound = {
-    id: completed.id === 'qualification' ? 'first' : 'final',
+    id: nextId,
     status: 'active',
     startOrder,
     attempts: {},
@@ -398,6 +501,28 @@ function openNextKoRound(state: CompetitionState, completed: CompetitionRound): 
   return openNextRound(state, completed, koFinalStartOrder(resolved, completed.attempts), resolved)
 }
 
+/** P26/P27 — awans 8 (drużyny) albo 12→8 (Super Team); finał ustawia grupy wg klasyfikacji. */
+function openNextTeamRound(state: CompetitionState, completed: CompetitionRound, format: TeamFormat): RecordAttemptResult {
+  const limit = teamAdvanceLimit(format, completed.id)
+  if (limit === null) return { state: { ...state, status: 'complete' }, roundCompleted: completed.id }
+  const advancing = teamAdvancers(state, completed, limit)
+  const nextId: CompetitionRoundId = format === 'superteam' && completed.id === 'first' ? 'second' : 'final'
+  const order = regroupsBeforeEachGroup(nextId) ? reverseStandingTeamOrder(state, advancing) : advancing
+  return openNextRound(state, completed, groupedStartOrder(order), null, nextId)
+}
+
+/** P28 — rozstrzygnięcie serii King of the Hill i ewentualna następna seria/dogrywka. */
+function openNextKothRound(state: CompetitionState): RecordAttemptResult {
+  if (!state.koth) throw new Error('King of the Hill bez stanu eliminacji.')
+  const completed = activeRound(state)
+  const resolution = resolveKothRound(state.koth, state.rounds)
+  const withKoth = { ...state, koth: resolution.koth }
+  if (!resolution.nextStartOrder) {
+    return { state: { ...withKoth, status: 'complete' }, roundCompleted: completed.id }
+  }
+  return openNextRound(withKoth, completed, resolution.nextStartOrder, null, kothRoundId(state.rounds.length + 1))
+}
+
 export function recordAttempt(state: CompetitionState, attempt: CompetitionAttempt): RecordAttemptResult {
   if (state.status !== 'active') throw new Error('Nie można dopisać próby do zakończonego konkursu.')
   validateAttempt(attempt)
@@ -426,6 +551,10 @@ export function recordAttempt(state: CompetitionState, attempt: CompetitionAttem
     ],
   }
   if (nextState.nextStartIndex < updatedRound.startOrder.length) {
+    if ((state.format === 'team' || state.format === 'superteam') && regroupsBeforeEachGroup(round.id)) {
+      const startOrder = reorderRemainingGroups(nextState, updatedRound, nextState.nextStartIndex)
+      if (startOrder !== updatedRound.startOrder) nextState = replaceRound(nextState, { ...updatedRound, startOrder })
+    }
     return { state: nextState, roundCompleted: null }
   }
   return finishRound(nextState)
@@ -574,7 +703,8 @@ export function cancelCurrentRound(state: CompetitionState, reason: string): Com
   let updated = replaceRound(state, cancelled)
   updated = {
     ...updated,
-    status: round.id === 'final' ? 'complete' : 'cancelled',
+    // Odwołana dalsza seria: obowiązują wyniki serii ukończonych (II seria Super Team jak finał).
+    status: round.id === 'final' || round.id === 'second' ? 'complete' : 'cancelled',
     withdrawalRequestParticipantId: null,
   }
   return {

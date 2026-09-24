@@ -4,6 +4,7 @@ import { hotseatSlotIndexes, LOCAL_PROFILES, type PlayerBindings } from '../play
 import {
   LARGE_ROUND_SUMMARY_VISIBLE_ROWS,
   ROUND_SUMMARY_VISIBLE_ROWS,
+  roundLabel,
   type CompetitionSessionSnapshot,
 } from '../app/competitionSession'
 import type { AiDifficulty, RankingEntry } from '../sport/competition'
@@ -438,13 +439,8 @@ function humanSummaryLine(snapshot: CompetitionSessionSnapshot): string {
 
 export function drawRoundSummary(context: CanvasRenderingContext2D, snapshot: CompetitionSessionSnapshot, largeText = false): void {
   clear(context)
-  const completedLabels = {
-    qualification: 'KWALIFIKACJE',
-    first: 'PIERWSZA SERIA',
-    final: 'FINAŁ',
-  } as const
   const completed = snapshot.lastCompletedRound ?? snapshot.roundId
-  const completedLabel = completedLabels[completed]
+  const completedLabel = roundLabel(completed)
   header(context, `${completedLabel} — ZAKOŃCZONA`, 'PEŁNA TABELA SERII • ZATWIERDŹ ENTEREM')
 
   panel(context, 18, 42, 444, 186)

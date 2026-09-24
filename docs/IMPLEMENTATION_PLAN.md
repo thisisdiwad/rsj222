@@ -1,6 +1,6 @@
 # Kompletny plan wykonania gry
 
-Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; P26–P40 NOT STARTED (następny PKG-015/P26–P28)**. H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
+Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; PKG-015/P26–P28 COMPLETE (VISUAL ekranów czeka na użytkownika); P29–P40 i P43 NOT STARTED (następny PKG-016/P29–P31)**. **Od 24.09.2026 (D20) pełne v1 obejmuje wszystkie skocznie PŚ z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [CONTENT_PLAN](CONTENT_PLAN.md), zamykana przez P43.** H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
 
 Źródła wymagań: [GDD](PRODUCT_GDD.md), [mechanika](GAMEPLAY_SPEC.md), [oprawa](ART_UI_AUDIO.md), [technika](TECHNICAL_DESIGN.md), [zawartość](CONTENT_PLAN.md), [QA](QA_ACCEPTANCE.md). Reguły sportowe nie są odtwarzane z pamięci ani z instrukcji SJ3.
 
@@ -23,7 +23,9 @@ P21–P22  cztery gotowe obiekty i ustawienia → BRAMKA B / MVP
    ↓
 P23–P29  sezon i wszystkie tryby → BRAMKA C
    ↓
-P30–P33  komplet art/audio, 20 skoczni, pomoc → BRAMKA D
+P43      zweryfikowana lista obiektów PŚ 2023/24–2025/26
+   ↓
+P30–P33  komplet art/audio, wszystkie skocznie PŚ (H05–H32), pomoc → BRAMKA D
    ↓
 P34–P40  przeglądarki, wydajność, offline, playtest, wydanie → BRAMKA E
 ```
@@ -284,7 +286,7 @@ Gra 4 skoczni, standardowy konkurs, trening, AI, hotseat, pełna punktacja, zapi
 **Zależności:** P16, P19, P21. **Pliki:** season reducer, calendar manifest, SeasonScreen, testy.
 
 - [x] Wyniki konkursów dają punkty pucharowe, nie dodają się jako punkty skoku; poprawne remisy.
-- [x] Wznowienie pomiędzy konkursami i zakończenie sezonu działa; na początku testowy kalendarz 4 obiektów, pełne 20 po P32.
+- [x] Wznowienie pomiędzy konkursami i zakończenie sezonu działa; na początku testowy kalendarz 4 obiektów, pełna lista obiektów PŚ po P32.
 - **Weryfikacja:** kontrolny sezon ze zdefiniowaną tabelą wyników i restartem w połowie.
 
 ### P24 — Własny kalendarz [M]
@@ -307,24 +309,24 @@ Gra 4 skoczni, standardowy konkurs, trening, AI, hotseat, pełna punktacja, zapi
 
 **Zależności:** P16, P18, P19. **Pliki:** team schema, team reducer, lineup screen, team scoreboard, testy.
 
-- [ ] Obsada 4 miejsc, dwie serie i finał 8; kolejność każdej grupy finałowej według aktualnego wyniku.
-- [ ] Mieszana obsada ludzie/boty ma jawne sterowanie; walidacja braku duplikatów.
+- [x] Obsada 4 miejsc, dwie serie i finał 8; kolejność każdej grupy finałowej według aktualnego wyniku (PKG-015).
+- [x] Mieszana obsada ludzie/boty ma jawne sterowanie; walidacja braku duplikatów. Remis graniczny: wspólne miejsce awansuje (ICR 433.4 + F03 §3.2.3.1).
 - **Weryfikacja:** Q-FIS-12; źródłowo rozstrzygnąć graniczny remis drużyn przed finalizacją fixture'a.
 
 ### P27 — Super Team [M]
 
 **Zależności:** P26. **Pliki:** superteam format, advancement, screen variant, testy.
 
-- [ ] 2 zawodników na zespół, trzy serie, awans 12→8; suma wszystkich zaliczonych skoków.
-- [ ] Wyniki i kolejność grup finału odświeżane poprawnie.
+- [x] 2 zawodników na zespół, trzy serie, awans 12→8; suma wszystkich zaliczonych skoków (PKG-015).
+- [x] Wyniki i kolejność grup finału odświeżane poprawnie; wznowienie między grupami i seriami.
 - **Weryfikacja:** pełny konkurs 16 zespołów, eliminacje i wznawianie między grupami.
 
 ### P28 — King of the Hill [M]
 
 **Zależności:** P16, P18. **Pliki:** koth reducer, challenge data, elimination screen, testy.
 
-- [ ] Najgorszy odpada, turniej kończy się zwycięzcą; tryb jawnie rozrywkowy.
-- [ ] Remis ostatnich uruchamia jedną dogrywkę tych osób; kolejny remis eliminuje grupę, a remis wszystkich pozostałych daje wspólne zwycięstwo (ADAPT).
+- [x] Najgorszy odpada, turniej kończy się zwycięzcą; tryb jawnie rozrywkowy (PKG-015).
+- [x] Remis ostatnich uruchamia jedną dogrywkę tych osób; kolejny remis eliminuje grupę, a remis wszystkich pozostałych daje wspólne zwycięstwo (ADAPT).
 - **Weryfikacja:**2,3,10 uczestników, remis wszystkich, wyjście ostatniego człowieka, brak nieskończonej pętli.
 
 ### P29 — Rekordy i statystyki [M]
@@ -337,7 +339,7 @@ Gra 4 skoczni, standardowy konkurs, trening, AI, hotseat, pełna punktacja, zapi
 
 ### Bramka C — wszystkie tryby
 
-Każdy tryb ma pełną drogę wejście→gra→wynik→powrót, poprawną obsadę i zapis. Nie wymaga jeszcze 20 ukończonych assetów, ale nie może mieć pustego menu prowadzącego do „coming soon”.
+Każdy tryb ma pełną drogę wejście→gra→wynik→powrót, poprawną obsadę i zapis. Nie wymaga jeszcze ukończonych assetów wszystkich skoczni, ale nie może mieć pustego menu prowadzącego do „coming soon”.
 
 P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zestawu testowego. Dopiero P32 wiąże go z właściwymi H03/H05/H06/H07. Nie podpisywać zastępczej skoczni jako Innsbruck i nie tworzyć cyklicznej zależności P25→P32→P30→P29→P25. Bramka D obejmuje finalny kalendarz i właściwe obiekty.
 
@@ -359,13 +361,21 @@ P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zesta
 - [ ] Każdy utwór/efekt ma autora i licencję; audio nie jest wymagane do odczytu zasad.
 - **Weryfikacja:** odsłuch przejść,50 prób bez narastania liczby głosów, autoplay denied i powrót z tła.
 
-### P32 — Pozostałe 16 skoczni [pakiet wielokrotny]
+### P43 — Lista obiektów PŚ 2023/24–2025/26 [S]
 
-**Zależności:** P21, P30. Obiekty H05–H20; dla każdego `P32-Hxx-D/G/A/V` z §6. Najpierw H05–H07 dla kompletnego turnieju, potem H08–H14, następnie H15–H20.
+**Zależności:** P21. **Pliki:** CONTENT_PLAN §1, mapa pakietów w PACKAGE_WORKFLOW.md, `docs/research/SOURCES.md`, krótki raport.
+
+- [ ] Z oficjalnych kalendarzy i protokołów FIS (mężczyźni i kobiety, skoki i loty, sezony 2023/24, 2024/25, 2025/26) potwierdzić każdą skocznię i wariant, na której rozegrano co najmniej jeden konkurs PŚ; zapisać sezon, datę i źródło.
+- [ ] Dla każdego obiektu potwierdzić aktualne K/HS; usunąć obiekty bez rozegranego konkursu PŚ (z uzasadnieniem), dopisać pominięte jako H33+ i zaktualizować mapę pakietów oraz walidator dokumentacji.
+- **Weryfikacja:** tabela CONTENT_PLAN §1 bez statusu „robocze/do weryfikacji”; każdy wiersz ma źródło FIS; liczba pakietów P32 równa liczbie obiektów H05+.
+
+### P32 — Pozostałe skocznie PŚ [pakiet wielokrotny]
+
+**Zależności:** P21, P30, P43. Obiekty H05–H32 (lista po P43); dla każdego `P32-Hxx-D/G/A/V` z §6, na tych samych zasadach co H01–H04 (AGENTS.md: K/HS zgodne, ADAPT/TUNE, odrębna oprawa, rekord + 2 m na dwie nogi, determinizm, VISUAL wyłącznie od użytkownika). Najpierw H05–H07 dla kompletnego turnieju, potem H08–H20, następnie H21–H32.
 
 - [ ] Każdy obiekt ma osobny źródłowy profil, współczynniki i rozpoznawalne otoczenie; nowe dane zweryfikowane aktualnie.
-- [ ] Kalendarze korzystają z 20 gotowych skoczni; żadnego podmieniania brakującego obiektu kopią bez informacji.
-- **Weryfikacja:** test per obiekt, przegląd 20 miniatur/profili i kompletny sezon.
+- [ ] Kalendarze korzystają ze wszystkich gotowych skoczni; żadnego podmieniania brakującego obiektu kopią bez informacji.
+- **Weryfikacja:** test per obiekt, przegląd wszystkich miniatur/profili i kompletny sezon.
 
 ### P33 — Pierwsze uruchomienie, teksty i instrukcja [M]
 
@@ -377,7 +387,7 @@ P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zesta
 
 ### Bramka D — kompletna zawartość
 
-20 obiektów, wszystkie tryby, docelowy art i audio, komplet polskich ekranów. Lista assetów i licencji kompletna. Przejścia gry nie zawierają placeholderów ani technicznych etykiet prototypu.
+Wszystkie obiekty PŚ z listy (H01–H32 po P43), wszystkie tryby, docelowy art i audio, komplet polskich ekranów. Lista assetów i licencji kompletna. Przejścia gry nie zawierają placeholderów ani technicznych etykiet prototypu.
 
 ### P34 — Matryca przeglądarek i ekranów [M]
 
@@ -391,7 +401,7 @@ P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zesta
 
 **Zależności:** P15, P17, P32, P34. **Pliki:** profilery scen, celowane poprawki, raport.
 
-- [ ] Zmierzyć docelowe sceny, szybkieAI, replay, wielokrotne przejścia 20 skoczni.
+- [ ] Zmierzyć docelowe sceny, szybkieAI, replay, wielokrotne przejścia wszystkich skoczni.
 - [ ] Poprawić wykazane problemy bez zmiany fizyki lub ukrytego zmniejszenia jakości gracza.
 - **Weryfikacja:** raport przed/po na tej samej maszynie; regresja wyników i brak rosnącej pamięci.
 
@@ -437,11 +447,11 @@ P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zesta
 
 ### Bramka E — v1 gotowe do publikacji
 
-Wszystkie wymagania U01–U12 i zadania P01–P40 zamknięte dowodami, pełne 20 skoczni, brak blockerów reguł, oprawy, zapisów i sterowania. Odbiór graczy oddzielny od testów. Publiczna publikacja nie jest automatycznym skutkiem przygotowania artefaktu.
+Wszystkie wymagania U01–U12 i zadania P01–P43 zamknięte dowodami, pełna lista skoczni PŚ, brak blockerów reguł, oprawy, zapisów i sterowania. Odbiór graczy oddzielny od testów. Publiczna publikacja nie jest automatycznym skutkiem przygotowania artefaktu.
 
 ## 6. Powtarzalny cykl produkcji każdej skoczni
 
-Nie ma jednego zadania „zrób 16 skoczni”. Dla każdego Hxx wykonuje się cztery małe zależne zadania:
+Nie ma jednego zadania „zrób wszystkie skocznie”. Dla każdego Hxx wykonuje się cztery małe zależne zadania:
 
 | Sufiks | Zakres i pliki | Kryterium odbioru | Zależność |
 | ---| ---| ---| ---|
@@ -473,6 +483,7 @@ Wystarcza jeden `docs/evidence/PKG-NNN/REPORT.md` z krótką sekcją końcowego 
 | U07 klawiatura | P04, P12, P18, P22, P33, P34 |
 | U08 dokumentacja/plan | Obecna dostawa, P40 |
 | U09 nowoczesny sport/linie | P05, P09, P13, P14, P16, P21, P25–P27, P32 |
+| U13 wszystkie skocznie PŚ z 3 ostatnich sezonów | P21, P43, P32 |
 | U10 więcej detali i wyższa rozdzielczość | P03, P11, P15, P21, P30, P32, P35 |
 | U11 prompt po każdym pakiecie | Wszystkie PKG według PACKAGE_WORKFLOW.md; dodatkowo P40 przy zamknięciu v1 |
 | U12 prostota i jedno końcowe review | Wszystkie PKG; nadrzędne zasady wykonania w AGENTS.md |

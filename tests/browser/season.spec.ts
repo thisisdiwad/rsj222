@@ -85,8 +85,11 @@ async function openMode(page: Page, target: 'cup' | 'ko'): Promise<void> {
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await page.keyboard.press('Enter')
   await waitFor(page, (state) => state.screen === 'menu' && state.persistence.ready, 'menu z bazą')
-  // Nowe tryby są na końcu listy: ↑ z „trening” zawija na TURNIEJ KO, potem PUCHAR.
-  await press(page, 'ArrowUp', (state) => state.menuSelection === 'ko', 'menu → turniej KO')
+  // Nowe tryby są na końcu listy: ↑ z „trening” zawija na koniec (PKG-015: KotH, Super Team,
+  // drużynowy), potem TURNIEJ KO i PUCHAR.
+  for (const step of ['koth', 'superteam', 'team', 'ko']) {
+    await press(page, 'ArrowUp', (state) => state.menuSelection === step, `menu → ${step}`)
+  }
   if (target === 'cup') await press(page, 'ArrowUp', (state) => state.menuSelection === 'cup', 'menu → puchar')
   await press(page, 'Enter', (state) => state.screen === 'season', 'hub sezonu')
   await waitFor(page, (state) => state.season.format === (target === 'cup' ? 'cup' : 'four-hills'), 'format huba')

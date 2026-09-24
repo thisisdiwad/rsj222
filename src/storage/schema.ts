@@ -312,6 +312,30 @@ function validateCompetition(raw: unknown): string | null {
   if ((raw.nextStartIndex as number) < 0 || (raw.nextStartIndex as number) > order.length) {
     return 'indeks startowy poza listą'
   }
+  return validateFormatData(raw, entrantIds)
+}
+
+/** PKG-015: drużyny i stan King of the Hill muszą wskazywać zawodników z listy. */
+function validateFormatData(raw: Record<string, unknown>, entrantIds: ReadonlySet<string>): string | null {
+  const known = (value: unknown) => Array.isArray(value) && value.every((id) => typeof id === 'string' && entrantIds.has(id))
+  if (raw.format === 'team' || raw.format === 'superteam') {
+    if (!Array.isArray(raw.teams) || raw.teams.length < 2) return 'konkurs drużynowy bez listy drużyn'
+    for (const team of raw.teams) {
+      if (!isPlainObject(team) || !isNonEmptyString(team.id) || !isNonEmptyString(team.name) || !known(team.memberIds)) {
+        return 'drużyna bez nazwy lub z nieznanym zawodnikiem'
+      }
+    }
+  }
+  if (raw.format === 'koth') {
+    const koth = raw.koth
+    if (!isPlainObject(koth) || !known(koth.remaining) || !Array.isArray(koth.kinds) || !Array.isArray(koth.eliminations)) {
+      return 'King of the Hill bez stanu eliminacji'
+    }
+    if (koth.winners !== null && !known(koth.winners)) return 'King of the Hill z nieznanym zwycięzcą'
+    for (const elimination of koth.eliminations) {
+      if (!isPlainObject(elimination) || !known(elimination.ids)) return 'eliminacja wskazuje nieznanego uczestnika'
+    }
+  }
   return null
 }
 

@@ -1,6 +1,7 @@
 /** P09/P12/P13 — redukcja zakończonej symulacji do pełnego wyniku treningowego. */
 
 import type { JumpSimulation } from '../simulation/jump'
+import type { CompetitionRoundId } from './competition'
 import { scoreCompensatedJump, type StartPhase } from './compensation'
 import {
   MODERN_RULES,
@@ -71,7 +72,7 @@ export type CompetitionJumpResult = Omit<
   readonly participantId: string
   readonly contextId: string
   readonly context: 'competition'
-  readonly roundId: 'qualification' | 'first' | 'final'
+  readonly roundId: CompetitionRoundId
 }
 
 function chooseFeedback(faults: readonly StyleFault[]): FeedbackCode {
