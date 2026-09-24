@@ -197,7 +197,7 @@ test('technical K120 and inspired H01 are selectable; H01 session resumes only o
   // A save relabeled as K120 must be rejected rather than restored on H01.
   const storedHillId = await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const r = indexedDB.open('retro-ski-jumping', 1)
+      const r = indexedDB.open('retro-ski-jumping')
       r.onsuccess = () => resolve(r.result)
       r.onerror = () => reject(r.error)
     })

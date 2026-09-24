@@ -40,6 +40,20 @@ export function buildHillById(hillId: string): Hill {
   return buildHill(hillSpecById(hillId))
 }
 
+/** Krótka etykieta skoczni do tabel kalendarza/sezonu (uczciwie: „INSP.”). */
+export function hillShortLabel(hillId: string): string {
+  const spec = HILL_SPECS.find((candidate) => candidate.id === hillId)
+  if (!spec) return `NIEZNANA: ${hillId}`
+  const names: Readonly<Record<string, string>> = {
+    'tech-k120-hs134': 'TECHNICZNA',
+    'h01-lillehammer-normal': 'LILLEHAMMER INSP.',
+    'h02-zakopane-large': 'ZAKOPANE INSP.',
+    'h03-oberstdorf-large': 'OBERSTDORF INSP.',
+    'h04-planica-flying': 'PLANICA INSP.',
+  }
+  return `${names[spec.id] ?? spec.name} K${spec.kPointMeters}/HS${spec.hillSizeMeters}`
+}
+
 /** Hill-specific competition session id so one hill cannot silently resume another. */
 export function hillCompetitionSessionId(hillId: string): string {
   return defaultCompetitionSessionIdForHillId(hillId)

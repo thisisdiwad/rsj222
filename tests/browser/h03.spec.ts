@@ -327,7 +327,7 @@ test('H03 konkurs: jury/belki/wiatr, zapis, boty, reload, replay bieżący i odr
   // Tylko dane testowego IndexedDB: nie modyfikujemy produkcyjnej ścieżki zapisu.
   await page.evaluate(async (sessionId) => {
     const db = await new Promise<IDBDatabase>((ok, bad) => {
-      const req = indexedDB.open('retro-ski-jumping', 1)
+      const req = indexedDB.open('retro-ski-jumping')
       req.onsuccess = () => ok(req.result)
       req.onerror = () => bad(req.error)
     })
@@ -351,7 +351,7 @@ test('H03 konkurs: jury/belki/wiatr, zapis, boty, reload, replay bieżący i odr
 
   await page.evaluate(async (resultId) => {
     const db = await new Promise<IDBDatabase>((ok, bad) => {
-      const req = indexedDB.open('retro-ski-jumping', 1)
+      const req = indexedDB.open('retro-ski-jumping')
       req.onsuccess = () => ok(req.result)
       req.onerror = () => bad(req.error)
     })

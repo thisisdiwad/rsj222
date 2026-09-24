@@ -44,6 +44,7 @@ import {
   type RecordCandidate,
   type SessionStats,
   type StoredReplay,
+  type StoredSeason,
   type StoredSession,
 } from '../storage/schema'
 import {
@@ -146,6 +147,8 @@ export type CommitRequest = {
   readonly result: CompetitionJumpResult | null
   readonly recordCandidate: RecordCandidate | null
   readonly replay: StoredReplay | null
+  /** Dołączany przez warstwę aplikacji dla konkursu sezonu (ta sama transakcja). */
+  readonly season?: StoredSeason | null
 }
 
 /** Sezon/KO: inna sesja, format i seed; brak pola = konkurs standardowy skoczni. */
@@ -781,34 +784,9 @@ export class CompetitionSession {
    * (wyniki, zwycięzcy, najlepsi przegrani). W finale i poza KO: `null`.
    */
   koBracketView(): KoBracketView | null {
-    const bracket = this.state.ko
-    if (this.state.format !== 'ko' || !bracket) return null
     const completed = this.lastCompletedRound ?? this.state.pendingRoundSummary
     if (this.view !== 'round-summary' || (completed !== 'qualification' && completed !== 'first')) return null
-    const first = this.state.rounds.find((round) => round.id === 'first')
-    const resolved = completed === 'first'
-    const winners = new Set(bracket.winners)
-    return {
-      resolved,
-      pairs: bracket.pairs.map((pair) => ({
-        index: pair.index,
-        slots: [pair.first, pair.second].map((participantId) => {
-          const attempt = participantId ? first?.attempts[participantId] : undefined
-          const rank = participantId ? bracket.qualified.indexOf(participantId) : -1
-          return {
-            participantId,
-            name: participantId ? entrantById(this.state, participantId)?.name ?? participantId : '— BRAK —',
-            koStartNumber: participantId ? bracket.startNumbers[participantId] ?? null : null,
-            qualificationRank: rank >= 0 ? rank + 1 : null,
-            totalTenths: resolved && attempt?.kind === 'score' ? attempt.totalTenths : null,
-            status: resolved ? attempt?.status ?? 'waiting' : 'waiting',
-          }
-        }),
-        winnerId: resolved ? [pair.first, pair.second].find((id) => id !== null && winners.has(id)) ?? null : null,
-      })),
-      luckyLosers: resolved ? bracket.luckyLosers : [],
-      longFallAdvancers: resolved ? bracket.longFallAdvancers : [],
-    }
+    return buildKoBracketView(this.state, completed === 'first')
   }
 
   private jumpParticipantId(): string {
@@ -873,6 +851,35 @@ export class CompetitionSession {
           }
         : null,
     }
+  }
+}
+
+/** Widok drabinki z samego stanu konkursu (także dla zapisanej sesji w hubie turnieju). */
+export function buildKoBracketView(state: CompetitionState, resolved: boolean): KoBracketView | null {
+  const bracket = state.ko
+  if (state.format !== 'ko' || !bracket) return null
+  const first = state.rounds.find((round) => round.id === 'first')
+  const winners = new Set(bracket.winners)
+  return {
+    resolved,
+    pairs: bracket.pairs.map((pair) => ({
+      index: pair.index,
+      slots: [pair.first, pair.second].map((participantId) => {
+        const attempt = participantId ? first?.attempts[participantId] : undefined
+        const rank = participantId ? bracket.qualified.indexOf(participantId) : -1
+        return {
+          participantId,
+          name: participantId ? entrantById(state, participantId)?.name ?? participantId : '— BRAK —',
+          koStartNumber: participantId ? bracket.startNumbers[participantId] ?? null : null,
+          qualificationRank: rank >= 0 ? rank + 1 : null,
+          totalTenths: resolved && attempt?.kind === 'score' ? attempt.totalTenths : null,
+          status: resolved ? attempt?.status ?? 'waiting' : 'waiting',
+        }
+      }),
+      winnerId: resolved ? [pair.first, pair.second].find((id) => id !== null && winners.has(id)) ?? null : null,
+    })),
+    luckyLosers: resolved ? bracket.luckyLosers : [],
+    longFallAdvancers: resolved ? bracket.longFallAdvancers : [],
   }
 }
 

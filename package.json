@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "vite build && playwright test tests/browser/competition.spec.ts tests/browser/jump.spec.ts tests/browser/persistence.spec.ts tests/browser/shell.spec.ts",
+    "test:e2e": "vite build && playwright test tests/browser/competition.spec.ts tests/browser/jump.spec.ts tests/browser/persistence.spec.ts tests/browser/shell.spec.ts tests/browser/season.spec.ts",
     "test:capture": "vite build && playwright test z_capture",
     "test:benchmark": "vite build && playwright test tests/browser/benchmark.spec.ts"
   },

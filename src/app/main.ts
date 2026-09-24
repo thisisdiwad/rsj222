@@ -12,6 +12,8 @@ import {
   PLAYABLE_HILL_SPECS,
   buildHillById,
   hillCompetitionSessionId,
+  hillShortLabel,
+  hillSpecById,
   assertSessionMatchesHill,
 } from './hills'
 import { createWindField, windSeedForAttempt } from '../simulation/wind'
@@ -36,13 +38,35 @@ import {
 } from '../render/hillView'
 import { drawPixelText, measurePixelText, type PixelTextAlign } from '../render/pixelFont'
 import {
+  buildKoBracketView,
   CompetitionSession,
   LARGE_ROUND_SUMMARY_VISIBLE_ROWS,
   ROUND_LABEL,
   ROUND_SUMMARY_VISIBLE_ROWS,
   type CommitRequest,
+  type KoBracketView,
 } from './competitionSession'
-import type { AiDifficulty } from '../sport/competition'
+import { competitionStandings, type AiDifficulty } from '../sport/competition'
+import {
+  calendarProblems,
+  CALENDAR_MAX_EVENTS,
+  createSeason,
+  eventSeed,
+  insertCalendarEvent,
+  moveCalendarEvent,
+  nextEventIndex,
+  recordSeasonEvent,
+  removeCalendarEvent,
+  replaceCalendarEvent,
+  seasonCompetitionId,
+  seasonSetKey,
+  seasonStandings,
+  type CalendarEvent,
+  type SeasonCalendar,
+  type SeasonFormat,
+  type SeasonSetup,
+} from '../sport/season'
+import { drawCalendarEditor, drawKoBracket, drawSeasonHub, type SeasonHubRow } from '../render/seasonView'
 import {
   drawCompetitionProgress,
   drawCompetitionSetup,
@@ -51,18 +75,26 @@ import {
   drawStartProcedure,
   drawWithdrawalConfirmation,
 } from '../render/competitionView'
-import { commitAttempt, countStore, loadGameSettings, loadLatestReplay, loadOfficialRecord, loadSession, openGameDatabase, saveGameSettings } from '../storage/db'
+import {
+  commitAttempt, countStore, loadCalendar, loadGameSettings, loadLatestReplay, loadOfficialRecord, loadSeasons, loadSession,
+  openGameDatabase, saveCalendar, saveGameSettings, saveSeason,
+} from '../storage/db'
 import { MODERN_RULES } from '../sport/scoring'
 import { physicsParamsForHill } from '../simulation/params'
 import { createOwnerId, SessionLease, LEASE_CHANNEL_NAME } from '../storage/lease'
-import { approximateBytes, recordKey, type StoredRecord, type StoredReplay, type StoredSession } from '../storage/schema'
+import {
+  approximateBytes, CALENDAR_SCHEMA_VERSION, recordKey, SEASON_SCHEMA_VERSION,
+  type StoredRecord, type StoredReplay, type StoredSeason, type StoredSession,
+} from '../storage/schema'
 import { ReplayPlayer, replayVisualsCompatible } from '../replay/player'
 import { drawReplayScreen } from '../render/replayView'
 import { drawSettingsScreen, SETTINGS_ROWS, type BindingRow, type SettingsRow } from '../render/settingsView'
 import { DEFAULT_SETTINGS, normalizeSettings, rebindSettings, resolveBoundAction, type GameSettings } from '../settings/settings'
 
 type Screen = 'title' | 'menu' | 'settings' | 'jump' | 'competition-setup' | 'competition' | 'replay'
-type MenuSelection = 'training' | 'competition' | 'replay' | 'settings'
+  | 'season' | 'calendar-editor' | 'ko-bracket'
+type MenuSelection = 'training' | 'competition' | 'replay' | 'settings' | 'cup' | 'ko'
+type HubRow = 'play' | 'calendar' | 'profiles' | 'difficulty' | 'edit' | 'bracket' | 'abandon'
 type SaveState = 'idle' | 'saving' | 'saved' | 'failed' | 'readonly'
 type DebugSnapshot = {
   debugEnabled: boolean
@@ -148,6 +180,28 @@ type DebugSnapshot = {
     visualFrame: number
   } | null
   competition: ReturnType<CompetitionSession['snapshot']> | null
+  season: {
+    format: SeasonFormat
+    hubRow: HubRow
+    message: string
+    calendarChoice: 'test' | 'custom'
+    setup: SeasonSetup
+    eventRunning: { seasonId: string; eventIndex: number } | null
+    active: {
+      id: string
+      setKey: string
+      status: string
+      completedEvents: number
+      totalEvents: number
+      nextEvent: number | null
+      calendar: string[]
+      standings: { participantId: string; rank: number; value: number }[]
+    } | null
+    completedWithSetKey: number
+    customCalendar: string[]
+    editor: { events: string[]; focus: number; dirty: boolean; setKey: string; message: string }
+    bracket: { pairs: number; resolved: boolean; scroll: number } | null
+  }
 }
 
 declare global {
@@ -371,9 +425,11 @@ function usesFixedTicks(): boolean {
   return competition.view === 'start' || competition.view === 'jump'
 }
 
-const MENU_ORDER: readonly MenuSelection[] = ['training', 'competition', 'replay', 'settings']
+/** PKG-014: nowe tryby dopisane na końcu, więc dotychczasowe skróty menu (↓×2, ↓×3) nie zmieniają celu. */
+const MENU_ORDER: readonly MenuSelection[] = ['training', 'competition', 'replay', 'settings', 'cup', 'ko']
 const MENU_NAMES: Readonly<Record<MenuSelection, string>> = {
   training: 'Trening', competition: 'Konkurs standardowy', replay: 'Ostatnia powtórka', settings: 'Ustawienia',
+  cup: 'Puchar sezonu', ko: 'Turniej KO',
 }
 const SETTINGS_NAMES: Readonly<Record<SettingsRow, string>> = {
   takeoff: 'Wybicie', left: 'Lot w lewo', right: 'Lot w prawo', telemark: 'Telemark', parallel: 'Dwie nogi',
@@ -432,6 +488,33 @@ function setScreenReaderStatus(): void {
     return
   }
 
+  if (screen === 'season') {
+    const rows = hubRows()
+    const focused = rows.find((row) => row.id === hubRow)
+    screenReaderStatus.textContent = paused
+      ? `Pauza: ${pauseReason}. Enter wznawia.`
+      : `${seasonTitle()}. ${seasonSubtitle()}. Wybrano: ${focused?.label ?? ''}${focused?.enabled === false ? ' (niedostępne)' : ''}. `
+        + `${seasonMessage} Góra i dół wybiera, lewo i prawo zmienia wartość, Enter zatwierdza, Backspace wraca do menu.`
+    canvas.setAttribute('aria-label', `Retro Ski Jumping — ${seasonTitle().toLowerCase()}`)
+    return
+  }
+
+  if (screen === 'calendar-editor') {
+    const event = editorEvents[editorFocus]
+    screenReaderStatus.textContent = paused
+      ? `Pauza: ${pauseReason}. Enter wznawia.`
+      : `Edycja własnego kalendarza: ${editorEvents.length} z 40 konkursów. Pozycja ${editorFocus + 1}: ${event ? hillShortLabel(event.hillId) : 'brak'}. `
+        + `${editorMessage} Góra i dół wybiera pozycję, lewo i prawo zmienia skocznię, A dodaje, X usuwa, nawiasy kwadratowe przesuwają, Enter zapisuje, Backspace wraca.`
+    canvas.setAttribute('aria-label', 'Retro Ski Jumping — edycja kalendarza')
+    return
+  }
+
+  if (screen === 'ko-bracket' && bracketScreen) {
+    screenReaderStatus.textContent = `${bracketScreen.title}. ${bracketScreen.subtitle}. Góra i dół przewija pary, Enter lub Backspace wraca.`
+    canvas.setAttribute('aria-label', 'Retro Ski Jumping — drabinka KO')
+    return
+  }
+
   if (screen === 'competition' && competition) {
     const state = competition.snapshot()
     const detail = state.view === 'handover'
@@ -441,8 +524,10 @@ function setScreenReaderStatus(): void {
         : state.view === 'jump'
           ? `Skok konkursowy ${state.currentParticipantName}, faza ${state.jump?.phase}.`
           : state.view === 'finished'
-            ? 'Konkurs zakończony. Enter wraca do menu.'
-            : `${state.roundLabel}. Tabela konkursu.`
+            ? `Konkurs zakończony. Enter wraca do ${seasonEvent ? 'sezonu' : 'menu'}.`
+            : state.ko
+              ? `Drabinka KO: ${state.ko.pairs.length} par${state.ko.resolved ? ', zwycięzcy i najlepsi przegrani wyłonieni' : ''}. Góra i dół przewija, Enter dalej.`
+              : `${state.roundLabel}. Tabela konkursu.`
     screenReaderStatus.textContent = paused ? `Pauza: ${pauseReason}. Enter wznawia.` : detail
     canvas.setAttribute('aria-label', `Retro Ski Jumping — ${paused ? 'pauza' : detail}`)
     return
@@ -794,6 +879,7 @@ async function runCommit(request: CommitRequest): Promise<void> {
     result: request.result,
     recordCandidate: request.recordCandidate,
     replay: request.replay,
+    season: request.season ?? null,
     ownerId: persistenceOwnerId,
     nowMs: Date.now(),
   })
@@ -807,8 +893,11 @@ async function runCommit(request: CommitRequest): Promise<void> {
   if (failedCommit === request) failedCommit = null
   saveState = failedCommit ? 'failed' : 'saved'
   if (!failedCommit) saveMessage = ''
-  savedSession = request.session
-  savedRejectedReason = null
+  // Konkursy sezonu mają własne sesje; nie udają zapisu konkursu standardowego skoczni.
+  if (request.session.id === hillCompetitionSessionId(hill.spec.id)) {
+    savedSession = request.session
+    savedRejectedReason = null
+  }
   if (outcome.applied) storedResultCount += 1
   if (outcome.recordUpdated && request.recordCandidate) {
     officialRecord = {
@@ -978,6 +1067,646 @@ function returnToMenu(): void {
   lifecycleMessage = 'MENU — WYBIERZ TRYB'
   setScreenReaderStatus()
   canvas.focus()
+}
+
+// --- PKG-014 / P23–P25: puchar sezonu, własny kalendarz i turniej KO ---------------
+
+const HILL_LIBRARY: readonly CalendarEvent[] = PLAYABLE_HILL_SPECS.map((spec) => ({ hillId: spec.id, hillVersion: spec.hillVersion }))
+/** Cztery zaakceptowane obiekty inspirowane (bez technicznej) — testowy kalendarz do czasu P32. */
+const TEST_EVENTS = HILL_LIBRARY.filter((event) => event.hillId !== 'tech-k120-hs134')
+const TEST_CUP_CALENDAR: SeasonCalendar = { id: 'test-cup-4', name: 'TESTOWY 4 OBIEKTY', events: TEST_EVENTS }
+/** P25 bez udawania docelowych H03/H05/H06/H07: jawnie nazwany zestaw testowy. */
+const TEST_KO_CALENDAR: SeasonCalendar = { id: 'test-ko-4', name: 'ZESTAW TESTOWY KO', events: TEST_EVENTS }
+const CUSTOM_CALENDAR_ID = 'custom'
+const HUB_STANDING_ROWS = 12
+const HUB_EVENT_ROWS = 6
+const EDITOR_VISIBLE_ROWS = 15
+
+let seasonFormat: SeasonFormat = 'cup'
+let storedSeasons: StoredSeason[] = []
+let hubRow: HubRow = 'play'
+let seasonMessage = ''
+let seasonCalendarChoice: 'test' | 'custom' = 'test'
+let seasonSetup: SeasonSetup = { profileCount: 1, difficulty: 'normal' }
+let customCalendar: SeasonCalendar = { ...TEST_CUP_CALENDAR, id: CUSTOM_CALENDAR_ID, name: 'WŁASNY' }
+let customCalendarProblem: string | null = null
+let abandonArmed = false
+let seasonBusy = false
+/** Hub czyta sezon z bazy; start konkursu czeka, aby nie rozegrać go na nieuzgodnionym stanie. */
+let seasonHubLoading = false
+/** Konkurs sezonu w toku: jego wynik trafia do sezonu w transakcji ostatniego skoku. */
+let seasonEvent: { seasonId: string; eventIndex: number } | null = null
+let menuHillIdBeforeSeason: string | null = null
+let seasonResume: StoredSession | null = null
+let latestKoSession: StoredSession | null = null
+let editorEvents: readonly CalendarEvent[] = []
+let editorFocus = 0
+let editorDirty = false
+let editorExitArmed = false
+let editorMessage = ''
+let bracketScreen: { bracket: KoBracketView; title: string; subtitle: string } | null = null
+let bracketScroll = 0
+
+const DIFFICULTY_NAMES: Readonly<Record<AiDifficulty, string>> = { easy: 'ŁATWA', normal: 'NORMALNA', hard: 'TRUDNA' }
+
+function activeSeason(): StoredSeason | null {
+  return storedSeasons
+    .filter((season) => season.format === seasonFormat && season.status === 'active')
+    .sort((left, right) => right.createdAtMs - left.createdAtMs)[0] ?? null
+}
+
+/** Ostatni sezon formatu (aktywny albo zakończony) — jego tabelę pokazuje hub. */
+function shownSeason(): StoredSeason | null {
+  return activeSeason() ?? storedSeasons
+    .filter((season) => season.format === seasonFormat && season.status === 'complete')
+    .sort((left, right) => right.savedAtMs - left.savedAtMs)[0] ?? null
+}
+
+function newSeasonCalendar(): SeasonCalendar {
+  if (seasonFormat === 'four-hills') return TEST_KO_CALENDAR
+  return seasonCalendarChoice === 'custom' ? customCalendar : TEST_CUP_CALENDAR
+}
+
+function setVersionsFor(calendar: SeasonCalendar) {
+  return {
+    rules: MODERN_RULES.version,
+    physics: calendar.events.map((event) => physicsParamsForHill(hillSpecById(event.hillId)).physicsVersion),
+  }
+}
+
+function currentSetKey(): string {
+  const season = activeSeason()
+  if (season) return season.setKey
+  const calendar = newSeasonCalendar()
+  if (calendarProblems(calendar, HILL_LIBRARY).length > 0) return '—'
+  return seasonSetKey(seasonFormat, calendar, seasonSetup, setVersionsFor(calendar))
+}
+
+function seasonTitle(): string {
+  return seasonFormat === 'cup' ? 'PUCHAR SEZONU' : 'TURNIEJ KO (TEST)'
+}
+
+function seasonSubtitle(): string {
+  const season = activeSeason()
+  const shown = shownSeason()
+  const rule = seasonFormat === 'cup' ? 'PUNKTY ZA MIEJSCA 1-30' : 'SUMA PUNKTÓW SKOKÓW • PARY 25 + 5'
+  if (season) {
+    const next = nextEventIndex(season)
+    return `${season.calendar.name} • KONKURS ${(next ?? season.results.length) + 1}/${season.calendar.events.length} • ${rule}`
+  }
+  if (shown) return `${shown.calendar.name} • ZAKOŃCZONY • ${rule}`
+  return `${newSeasonCalendar().name} • NOWY • ${rule}`
+}
+
+function hubRows(): readonly (SeasonHubRow & { readonly id: HubRow })[] {
+  const season = activeSeason()
+  const next = season ? nextEventIndex(season) : null
+  const nextEvent = season && next !== null ? season.calendar.events[next] : null
+  const resumeJump = seasonResume?.competition.status === 'active'
+    ? ` • WZNÓW SKOK ${seasonResume.competition.nextStartIndex + 1}` : ''
+  const playLabel = nextEvent
+    ? `KONKURS ${next! + 1}: ${hillShortLabel(nextEvent.hillId).replace(/ K\d+\/HS\d+$/, '')}${resumeJump}`
+    : `START: ${newSeasonCalendar().name}`
+  const rows: (SeasonHubRow & { readonly id: HubRow })[] = [{ id: 'play', label: playLabel, enabled: true }]
+  if (seasonFormat === 'cup') {
+    rows.push({
+      id: 'calendar',
+      label: `KALENDARZ: ${seasonCalendarChoice === 'custom' ? `WŁASNY (${customCalendar.events.length})` : 'TESTOWY 4'}`,
+      enabled: season === null,
+      adjustable: true,
+    })
+  }
+  rows.push(
+    { id: 'profiles', label: `GRACZE: ${season?.setup.profileCount ?? seasonSetup.profileCount}`, enabled: season === null, adjustable: true },
+    { id: 'difficulty', label: `AI: ${DIFFICULTY_NAMES[season?.setup.difficulty ?? seasonSetup.difficulty]}`, enabled: season === null, adjustable: true },
+  )
+  if (seasonFormat === 'cup') rows.push({ id: 'edit', label: 'EDYTUJ WŁASNY KALENDARZ', enabled: true })
+  else rows.push({ id: 'bracket', label: 'DRABINKA KO', enabled: latestKoSession?.competition.ko != null })
+  rows.push({ id: 'abandon', label: abandonArmed ? 'ENTER PONOWNIE — PORZUĆ' : seasonFormat === 'cup' ? 'PORZUĆ SEZON' : 'PORZUĆ TURNIEJ', enabled: season !== null })
+  return rows
+}
+
+function seasonHubView() {
+  const season = shownSeason()
+  const rows = hubRows()
+  const standings = season ? seasonStandings(season) : []
+  const humanIds = new Set(standings.filter((row) => row.participantId.startsWith('local-')).map((row) => row.participantId))
+  let visible = standings.slice(0, HUB_STANDING_ROWS)
+  const missingHumans = standings.filter((row) => humanIds.has(row.participantId) && !visible.includes(row))
+  if (missingHumans.length > 0) {
+    visible = [...visible.slice(0, Math.max(0, HUB_STANDING_ROWS - missingHumans.length)), ...missingHumans].slice(0, HUB_STANDING_ROWS)
+  }
+  const format = (value: number) => season?.format === 'four-hills'
+    ? `${(value / 10).toFixed(1).replace('.', ',')} PKT`
+    : `${value} PKT`
+  const calendar = season?.calendar ?? newSeasonCalendar()
+  const next = season ? nextEventIndex(season) : null
+  const pivot = next ?? (season ? season.results.length - 1 : 0)
+  const first = Math.max(0, Math.min(calendar.events.length - HUB_EVENT_ROWS, pivot - 2))
+  const events = calendar.events.slice(first, first + HUB_EVENT_ROWS).map((event, offset) => {
+    const index = first + offset
+    const result = season?.results[index]
+    const state = result ? (result.status === 'cancelled' ? 'cancelled' : 'done') : index === next ? 'next' : 'pending'
+    return {
+      number: index + 1,
+      label: hillShortLabel(event.hillId).replace(/ K\d+\/HS\d+$/, ''),
+      state,
+      note: result?.status === 'cancelled' ? 'ANUL.' : result ? '' : index === next ? 'TERAZ' : '',
+    } as const
+  })
+  const key = currentSetKey()
+  const sameSet = storedSeasons.filter((candidate) => candidate.setKey === key && candidate.status === 'complete')
+  const leader = standings[0]
+  const defaultMessage = season?.status === 'complete' && leader
+    ? `ZAKOŃCZONY • ZWYCIĘZCA: ${leader.name} • ENTER NA STARCIE — NOWY SEZON`
+    : '↑/↓ WYBÓR • ←/→ ZMIANA • ENTER — WYBIERZ • BACKSPACE — MENU'
+  return {
+    title: seasonTitle(),
+    subtitle: seasonSubtitle(),
+    rows,
+    focusedRow: Math.max(0, rows.findIndex((row) => row.id === hubRow)),
+    standingsTitle: seasonFormat === 'cup' ? 'KLASYFIKACJA PUCHARU' : 'KLASYFIKACJA TURNIEJU (SUMA SKOKÓW)',
+    standings: visible.map((row) => ({ rank: row.rank, name: row.name, value: format(row.value), human: humanIds.has(row.participantId) })),
+    events,
+    setLine: `KLUCZ ${key} • UKOŃCZONE ${sameSet.length}`,
+    message: seasonMessage || (customCalendarProblem && seasonFormat === 'cup' ? `WŁASNY KALENDARZ: ${customCalendarProblem.toUpperCase()}` : defaultMessage),
+  }
+}
+
+/** Po awarii między zapisem konkursu a sezonem (np. stary zapis) dopisuje zakończony konkurs. */
+async function reconcileSeason(season: StoredSeason): Promise<void> {
+  const index = nextEventIndex(season)
+  if (!database || index === null) return
+  const loaded = await loadSession(database, seasonCompetitionId(season, index))
+  if (loaded.kind !== 'ok') return
+  const state = loaded.session.competition
+  if (state.status === 'active') {
+    seasonResume = loaded.session
+    return
+  }
+  const updated = recordSeasonEvent(season, index, state.status === 'cancelled' ? 'cancelled' : 'complete', competitionStandings(state))
+  const stored: StoredSeason = { ...updated, schemaVersion: SEASON_SCHEMA_VERSION, revision: season.revision + 1, savedAtMs: Date.now() }
+  storedSeasons = storedSeasons.map((candidate) => (candidate.id === stored.id ? stored : candidate))
+  await saveSeason(database, stored)
+}
+
+async function refreshSeasonHub(): Promise<void> {
+  seasonResume = null
+  latestKoSession = null
+  if (!database) return
+  seasonHubLoading = true
+  try {
+    const loaded = await loadSeasons(database)
+    // Nowsza rewizja w RAM (np. po nieudanym zapisie) nie jest cofana starszym stanem z dysku.
+    const merged = new Map(loaded.seasons.map((season) => [season.id, season]))
+    for (const season of storedSeasons) {
+      const onDisk = merged.get(season.id)
+      if (!onDisk || onDisk.revision < season.revision) merged.set(season.id, season)
+    }
+    storedSeasons = [...merged.values()]
+    for (const season of storedSeasons) {
+      const onDisk = loaded.seasons.find((candidate) => candidate.id === season.id)
+      if (!onDisk || onDisk.revision < season.revision) await saveSeason(database, season)
+    }
+    if (loaded.rejected > 0) seasonMessage = `POMINIĘTO USZKODZONE ZAPISY SEZONU: ${loaded.rejected}`
+    const calendar = await loadCalendar(database, CUSTOM_CALENDAR_ID)
+    if (calendar.kind === 'ok') {
+      customCalendar = { id: calendar.calendar.id, name: calendar.calendar.name, events: calendar.calendar.events }
+      customCalendarProblem = calendarProblems(customCalendar, HILL_LIBRARY)[0] ?? null
+    } else if (calendar.kind === 'rejected') {
+      customCalendarProblem = calendar.reason
+    }
+    const season = activeSeason()
+    if (season) await reconcileSeason(season)
+    if (seasonFormat === 'four-hills') {
+      const shown = shownSeason()
+      if (shown) {
+        const index = nextEventIndex(shown) ?? shown.results.length - 1
+        for (const candidate of [index, index - 1]) {
+          if (candidate < 0) continue
+          const session = await loadSession(database, seasonCompetitionId(shown, candidate))
+          if (session.kind === 'ok' && session.session.competition.ko) {
+            latestKoSession = session.session
+            break
+          }
+        }
+      }
+    }
+  } catch (cause) {
+    seasonMessage = `NIE ODCZYTANO SEZONU — ${cause instanceof Error ? cause.message : String(cause)}`
+  } finally {
+    seasonHubLoading = false
+  }
+}
+
+function openSeasonHub(format: SeasonFormat): void {
+  seasonFormat = format
+  screen = 'season'
+  hubRow = 'play'
+  abandonArmed = false
+  seasonMessage = ''
+  input.reset()
+  lastInput = emptyTickInput()
+  setScreenReaderStatus()
+  void refreshSeasonHub().then(() => setScreenReaderStatus())
+}
+
+async function persistSeason(season: StoredSeason): Promise<void> {
+  if (!database) {
+    seasonMessage = 'NIE ZAPISANO SEZONU — BRAK BAZY, STAN TYLKO W PAMIĘCI'
+    return
+  }
+  try {
+    await saveSeason(database, season)
+  } catch (cause) {
+    seasonMessage = `NIE ZAPISANO SEZONU — ${cause instanceof Error ? cause.message : String(cause)}`
+  }
+}
+
+/** Zamyka konkurs sezonu: wynik trafia do sezonu w tej samej transakcji co ostatni skok. */
+function attachSeasonToCommit(request: CommitRequest): CommitRequest {
+  const event = seasonEvent
+  if (!event) return request
+  const state = request.session.competition
+  const season = storedSeasons.find((candidate) => candidate.id === event.seasonId)
+  if (!season || state.status === 'active') return request
+  const updated = recordSeasonEvent(season, event.eventIndex, state.status === 'cancelled' ? 'cancelled' : 'complete', competitionStandings(state))
+  if (updated === season) return request
+  const stored: StoredSeason = { ...updated, schemaVersion: SEASON_SCHEMA_VERSION, revision: season.revision + 1, savedAtMs: Date.now() }
+  storedSeasons = storedSeasons.map((candidate) => (candidate.id === stored.id ? stored : candidate))
+  return { ...request, season: stored }
+}
+
+async function switchLease(sessionId: string): Promise<void> {
+  if (!database) return
+  await sessionLease?.release().catch(() => undefined)
+  leaseChannel?.close()
+  leaseChannel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(LEASE_CHANNEL_NAME) : null
+  sessionLease = new SessionLease(database, sessionId, persistenceOwnerId, { channel: leaseChannel })
+  const status = await sessionLease.acquire()
+  saveState = status.role === 'owner' ? 'idle' : 'readonly'
+  saveMessage = status.role === 'owner' ? '' : `sesję zapisuje karta ${status.ownerId ?? '—'}`
+  failedCommit = null
+}
+
+async function startSeasonEvent(): Promise<void> {
+  if (seasonBusy || seasonHubLoading || hillLoading || (!persistenceReady && saveState !== 'failed')) return
+  seasonBusy = true
+  try {
+    let season = activeSeason()
+    if (!season) {
+      const calendar = newSeasonCalendar()
+      const problems = calendarProblems(calendar, HILL_LIBRARY)
+      if (problems.length > 0) {
+        seasonMessage = `NIE MOŻNA ROZPOCZĄĆ — ${problems[0]!.toUpperCase()}`
+        return
+      }
+      const nowMs = Date.now()
+      const created = createSeason({
+        id: `${seasonFormat}-${nowMs.toString(36)}`,
+        format: seasonFormat,
+        calendar,
+        setup: seasonSetup,
+        versions: setVersionsFor(calendar),
+        library: HILL_LIBRARY,
+        nowMs,
+      })
+      season = { ...created, schemaVersion: SEASON_SCHEMA_VERSION, revision: 0, savedAtMs: nowMs }
+      storedSeasons = [...storedSeasons, season]
+      seasonResume = null
+      await persistSeason(season)
+    }
+    const index = nextEventIndex(season)
+    const event = index === null ? null : season.calendar.events[index]
+    if (index === null || !event) return
+    if (calendarProblems({ ...season.calendar, events: [event] }, HILL_LIBRARY).length > 0) {
+      seasonMessage = 'NIE MOŻNA — SKOCZNIA Z KALENDARZA JEST NIEDOSTĘPNA W TEJ WERSJI GRY'
+      return
+    }
+    await saveChain.catch(() => undefined)
+    menuHillIdBeforeSeason ??= hill.spec.id
+    hill = buildHillById(event.hillId)
+    hillView = buildView(hill)
+    const sessionId = seasonCompetitionId(season, index)
+    await switchLease(sessionId)
+    const loaded = database ? await loadSession(database, sessionId) : { kind: 'none' as const }
+    const restorable = loaded.kind === 'ok'
+      && loaded.session.competition.status === 'active'
+      && loaded.session.hillId === hill.spec.id
+      && loaded.session.versions.hill === hill.spec.hillVersion
+      ? loaded.session
+      : null
+    const label = `${seasonFormat === 'cup' ? 'PUCHAR' : 'TURNIEJ KO'} ${index + 1}/${season.calendar.events.length}`
+    competition = new CompetitionSession(
+      hill,
+      season.setup.profileCount,
+      season.setup.difficulty,
+      enterDown,
+      restorable,
+      sessionId,
+      { format: seasonFormat === 'four-hills' ? 'ko' : 'standard', seed: eventSeed(season.setKey, index), label },
+    )
+    competition.setRoundSummaryVisibleRows(settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS)
+    if (!restorable && loaded.kind === 'ok') competition.revision = loaded.session.revision
+    seasonEvent = { seasonId: season.id, eventIndex: index }
+    competition.onCommit = (request) => enqueueSave(attachSeasonToCommit(request))
+    competition.requestCheckpoint()
+    if (sessionLease?.status.role === 'owner') sessionLease.startHeartbeat()
+    screen = 'competition'
+    paused = false
+    tick = 0
+    input.reset()
+    lastInput = emptyTickInput()
+    const now = performance.now()
+    sessionClock.start(now)
+    fixedClock.reset(now)
+    lifecycleMessage = label
+  } catch (cause) {
+    seasonMessage = `NIE MOŻNA ROZPOCZĄĆ KONKURSU — ${cause instanceof Error ? cause.message : String(cause)}`
+  } finally {
+    seasonBusy = false
+    setScreenReaderStatus()
+  }
+}
+
+function returnToSeasonHub(): void {
+  const lease = sessionLease
+  lease?.stopHeartbeat()
+  const finished = seasonEvent
+  seasonEvent = null
+  competition = null
+  const menuHillId = menuHillIdBeforeSeason
+  menuHillIdBeforeSeason = null
+  if (menuHillId && menuHillId !== hill.spec.id) {
+    hill = buildHillById(menuHillId)
+    hillView = buildView(hill)
+  }
+  // Zwolnienie lease konkursu i powrót do lease wybranej skoczni po kolejce zapisów.
+  // Niezapisana transakcja konkursu (z wynikiem sezonu) dostaje jeszcze jedną próbę,
+  // zanim lease wybranej skoczni zastąpi lease sesji konkursu.
+  const pending = failedCommit
+  if (pending) enqueueSave(pending)
+  saveChain = saveChain
+    .then(() => lease?.release())
+    .then(() => {
+      leaseChannel?.close()
+      leaseChannel = null
+    })
+    .then(() => loadSelectedHillPersistence())
+    .then(() => refreshSeasonHub())
+    .then(() => setScreenReaderStatus())
+    .catch(() => undefined)
+  const season = finished ? storedSeasons.find((candidate) => candidate.id === finished.seasonId) : null
+  const winner = season?.results[finished?.eventIndex ?? -1]?.placements.find((placement) => placement.rank === 1)
+  seasonMessage = season?.status === 'complete'
+    ? `${seasonFormat === 'cup' ? 'SEZON' : 'TURNIEJ'} ZAKOŃCZONY • TABELA KOŃCOWA`
+    : winner ? `KONKURS ${(finished?.eventIndex ?? 0) + 1} ZALICZONY • WYGRAŁ: ${winner.name}` : 'KONKURS ZAPISANY W SEZONIE'
+  screen = 'season'
+  hubRow = 'play'
+  abandonArmed = false
+  paused = false
+  tick = 0
+  input.reset()
+  lastInput = emptyTickInput()
+  const now = performance.now()
+  sessionClock.start(now)
+  fixedClock.reset(now)
+  setScreenReaderStatus()
+  canvas.focus()
+}
+
+function changeHubValue(direction: -1 | 1): void {
+  if (activeSeason()) return
+  abandonArmed = false
+  if (hubRow === 'calendar') {
+    seasonCalendarChoice = seasonCalendarChoice === 'test' ? 'custom' : 'test'
+  } else if (hubRow === 'profiles') {
+    seasonSetup = { ...seasonSetup, profileCount: Math.max(1, Math.min(10, seasonSetup.profileCount + direction)) }
+  } else if (hubRow === 'difficulty') {
+    const order: AiDifficulty[] = ['easy', 'normal', 'hard']
+    const next = order[(order.indexOf(seasonSetup.difficulty) + direction + order.length) % order.length] ?? 'normal'
+    seasonSetup = { ...seasonSetup, difficulty: next }
+  } else {
+    return
+  }
+  seasonMessage = ''
+}
+
+async function abandonSeason(): Promise<void> {
+  const season = activeSeason()
+  if (!season) return
+  const stored: StoredSeason = { ...season, status: 'abandoned', revision: season.revision + 1, savedAtMs: Date.now() }
+  storedSeasons = storedSeasons.map((candidate) => (candidate.id === stored.id ? stored : candidate))
+  seasonResume = null
+  seasonMessage = 'SEZON PORZUCONY — WYNIKI ZACHOWANE W ZAPISIE'
+  await persistSeason(stored)
+}
+
+function activateHubRow(): void {
+  const row = hubRows().find((candidate) => candidate.id === hubRow)
+  if (!row?.enabled) {
+    seasonMessage = 'NIEDOSTĘPNE W TRAKCIE SEZONU — NAJPIERW ZAKOŃCZ LUB PORZUĆ'
+    return
+  }
+  if (hubRow !== 'abandon') abandonArmed = false
+  if (hubRow === 'play') void startSeasonEvent()
+  else if (hubRow === 'calendar' || hubRow === 'profiles' || hubRow === 'difficulty') changeHubValue(1)
+  else if (hubRow === 'edit') openCalendarEditor()
+  else if (hubRow === 'bracket') openHubBracket()
+  else if (hubRow === 'abandon') {
+    if (!abandonArmed) {
+      abandonArmed = true
+      seasonMessage = 'PORZUCENIE KOŃCZY SEZON BEZ DALSZYCH KONKURSÓW — ENTER POTWIERDZA'
+      return
+    }
+    abandonArmed = false
+    hubRow = 'play'
+    void abandonSeason().then(() => setScreenReaderStatus())
+  }
+}
+
+function handleSeasonHubKey(event: KeyboardEvent): void {
+  if (event.repeat) return
+  if (event.code === 'Backspace' || event.code === 'Escape' || event.code === settings.menuBack) {
+    event.preventDefault()
+    returnToMenu()
+    return
+  }
+  const rows = hubRows()
+  if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+    event.preventDefault()
+    const current = Math.max(0, rows.findIndex((row) => row.id === hubRow))
+    hubRow = rows[(current + (event.code === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length]?.id ?? 'play'
+    if (hubRow !== 'abandon') abandonArmed = false
+    seasonMessage = ''
+  } else if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
+    event.preventDefault()
+    changeHubValue(event.code === 'ArrowRight' ? 1 : -1)
+  } else if (event.code === 'Enter' || event.code === settings.menuConfirm) {
+    event.preventDefault()
+    activateHubRow()
+  } else {
+    return
+  }
+  setScreenReaderStatus()
+}
+
+function openCalendarEditor(): void {
+  // Tylko obecne skocznie; nieznane pozycje zapisu są usuwane jawnie, nie po cichu.
+  const known = customCalendar.events
+    .filter((event) => HILL_LIBRARY.some((candidate) => candidate.hillId === event.hillId))
+    .map((event) => HILL_LIBRARY.find((candidate) => candidate.hillId === event.hillId)!)
+  const removed = customCalendar.events.length - known.length
+  const refreshed = known.some((event, index) => event.hillVersion !== customCalendar.events[index]?.hillVersion)
+  editorEvents = known.length > 0 ? known : [...TEST_EVENTS]
+  editorFocus = 0
+  editorDirty = removed > 0 || refreshed || known.length === 0
+  editorExitArmed = false
+  editorMessage = removed > 0
+    ? `USUNIĘTO NIEDOSTĘPNE SKOCZNIE: ${removed} — ENTER ZAPISUJE`
+    : refreshed ? 'ZAKTUALIZOWANO WERSJE SKOCZNI — ENTER ZAPISUJE' : 'EDYTUJ KLAWISZAMI • ENTER ZAPISUJE'
+  screen = 'calendar-editor'
+  input.reset()
+  lastInput = emptyTickInput()
+  setScreenReaderStatus()
+}
+
+function editorSetKey(): string {
+  const calendar: SeasonCalendar = { id: CUSTOM_CALENDAR_ID, name: 'WŁASNY', events: editorEvents }
+  if (calendarProblems(calendar, HILL_LIBRARY).length > 0) return '—'
+  return seasonSetKey('cup', calendar, seasonSetup, setVersionsFor(calendar))
+}
+
+async function saveEditorCalendar(): Promise<void> {
+  const calendar: SeasonCalendar = { id: CUSTOM_CALENDAR_ID, name: 'WŁASNY', events: editorEvents }
+  const problems = calendarProblems(calendar, HILL_LIBRARY)
+  if (problems.length > 0) {
+    editorMessage = `NIE ZAPISANO — ${problems[0]!.toUpperCase()}`
+    return
+  }
+  customCalendar = calendar
+  customCalendarProblem = null
+  seasonCalendarChoice = 'custom'
+  editorDirty = false
+  editorExitArmed = false
+  if (!database) {
+    editorMessage = 'NIE ZAPISANO NA DYSKU — BRAK BAZY, KALENDARZ DZIAŁA DO ODŚWIEŻENIA'
+    return
+  }
+  try {
+    await saveCalendar(database, {
+      schemaVersion: CALENDAR_SCHEMA_VERSION, id: CUSTOM_CALENDAR_ID, name: 'WŁASNY', events: editorEvents, savedAtMs: Date.now(),
+    })
+    editorMessage = `ZAPISANO ${editorEvents.length} KONKURSÓW • KLUCZ ${editorSetKey()}`
+  } catch (cause) {
+    editorMessage = `NIE ZAPISANO — ${cause instanceof Error ? cause.message : String(cause)}`
+  }
+}
+
+function editCalendar(next: readonly CalendarEvent[], focus: number, message: string): void {
+  if (next !== editorEvents) editorDirty = true
+  editorEvents = next
+  editorFocus = Math.max(0, Math.min(next.length - 1, focus))
+  editorExitArmed = false
+  editorMessage = message
+}
+
+function handleCalendarEditorKey(event: KeyboardEvent): void {
+  if (event.repeat && !['ArrowUp', 'ArrowDown'].includes(event.code)) return
+  const current = editorEvents[editorFocus]
+  if (event.code === 'Backspace' || event.code === 'Escape' || event.code === settings.menuBack) {
+    event.preventDefault()
+    if (editorDirty && !editorExitArmed) {
+      editorExitArmed = true
+      editorMessage = 'NIE ZAPISANO ZMIAN — BACKSPACE PONOWNIE PORZUCA, ENTER ZAPISUJE'
+    } else {
+      screen = 'season'
+      seasonMessage = editorDirty ? 'ZMIANY KALENDARZA PORZUCONE' : ''
+      editorDirty = false
+    }
+  } else if ((event.code === 'ArrowUp' || event.code === 'ArrowDown') && event.shiftKey) {
+    event.preventDefault()
+    const delta = event.code === 'ArrowDown' ? 1 : -1
+    editCalendar(moveCalendarEvent(editorEvents, editorFocus, delta), editorFocus + delta, 'PRZESUNIĘTO — KOLEJNOŚĆ ZMIENIA KLUCZ ZESTAWU')
+  } else if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+    event.preventDefault()
+    editorFocus = Math.max(0, Math.min(editorEvents.length - 1, editorFocus + (event.code === 'ArrowDown' ? 1 : -1)))
+  } else if ((event.code === 'ArrowLeft' || event.code === 'ArrowRight') && current) {
+    event.preventDefault()
+    const at = HILL_LIBRARY.findIndex((candidate) => candidate.hillId === current.hillId)
+    const nextHill = HILL_LIBRARY[(at + (event.code === 'ArrowRight' ? 1 : -1) + HILL_LIBRARY.length) % HILL_LIBRARY.length]!
+    editCalendar(replaceCalendarEvent(editorEvents, editorFocus, nextHill), editorFocus, `POZYCJA ${editorFocus + 1}: ${hillShortLabel(nextHill.hillId)}`)
+  } else if ((event.code === 'KeyA' || event.code === 'Insert') && current) {
+    event.preventDefault()
+    const next = insertCalendarEvent(editorEvents, editorFocus + 1, current)
+    editCalendar(next, editorFocus + 1, next === editorEvents ? `LIMIT ${CALENDAR_MAX_EVENTS} KONKURSÓW` : 'DODANO KONKURS')
+  } else if (event.code === 'KeyX' || event.code === 'Delete') {
+    event.preventDefault()
+    const next = removeCalendarEvent(editorEvents, editorFocus)
+    editCalendar(next, editorFocus, next === editorEvents ? 'KALENDARZ MUSI MIEĆ CO NAJMNIEJ 1 KONKURS' : 'USUNIĘTO KONKURS')
+  } else if (event.code === 'BracketLeft' || event.code === 'BracketRight') {
+    event.preventDefault()
+    const delta = event.code === 'BracketRight' ? 1 : -1
+    editCalendar(moveCalendarEvent(editorEvents, editorFocus, delta), editorFocus + delta, 'PRZESUNIĘTO — KOLEJNOŚĆ ZMIENIA KLUCZ ZESTAWU')
+  } else if (event.code === 'Enter' || event.code === settings.menuConfirm) {
+    event.preventDefault()
+    void saveEditorCalendar().then(() => setScreenReaderStatus())
+  } else {
+    return
+  }
+  setScreenReaderStatus()
+}
+
+function calendarEditorView() {
+  const first = Math.max(0, Math.min(editorEvents.length - EDITOR_VISIBLE_ROWS, editorFocus - Math.floor(EDITOR_VISIBLE_ROWS / 2)))
+  const focused = editorEvents[editorFocus]
+  return {
+    events: editorEvents.slice(first, first + EDITOR_VISIBLE_ROWS).map((event, offset) => ({
+      number: first + offset + 1,
+      label: hillShortLabel(event.hillId),
+      focused: first + offset === editorFocus,
+    })),
+    count: editorEvents.length,
+    focusedNumber: editorFocus + 1,
+    library: HILL_LIBRARY.map((event) => ({ label: hillShortLabel(event.hillId), selected: event.hillId === focused?.hillId })),
+    setKey: editorSetKey(),
+    dirty: editorDirty,
+    message: editorMessage,
+  }
+}
+
+function openHubBracket(): void {
+  const state = latestKoSession?.competition
+  const bracket = state ? buildKoBracketView(state, state.rounds.some((round) => round.id === 'first' && round.status === 'complete')) : null
+  if (!state || !bracket) {
+    seasonMessage = 'DRABINKA POWSTAJE PO KWALIFIKACJACH KONKURSU KO'
+    return
+  }
+  const number = Number(latestKoSession?.id.split('-e').at(-1) ?? 0)
+  bracketScreen = {
+    bracket,
+    title: `DRABINKA KO — KONKURS ${number}: ${hillShortLabel(latestKoSession!.hillId)}`,
+    subtitle: bracket.resolved ? 'WYNIKI PAR I SERII • ZWYCIĘZCY I NAJLEPSI PRZEGRANI' : 'PARY I SERII • WYNIKI PO ROZEGRANIU SERII',
+  }
+  bracketScroll = 0
+  screen = 'ko-bracket'
+}
+
+function handleBracketKey(event: KeyboardEvent): void {
+  if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+    event.preventDefault()
+    const rows = settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS
+    const maximum = Math.max(0, (bracketScreen?.bracket.pairs.length ?? 0) - rows)
+    bracketScroll = Math.max(0, Math.min(maximum, bracketScroll + (event.code === 'ArrowDown' ? 3 : -3)))
+  } else if (!event.repeat && (event.code === 'Backspace' || event.code === 'Escape' || event.code === 'Enter'
+    || event.code === settings.menuBack || event.code === settings.menuConfirm)) {
+    event.preventDefault()
+    screen = 'season'
+    bracketScreen = null
+  } else {
+    return
+  }
+  setScreenReaderStatus()
 }
 
 function startFromGesture(): void {
@@ -1302,6 +2031,19 @@ function onKeyDown(event: KeyboardEvent): void {
   }
   if (paused) return
 
+  if (screen === 'season') {
+    handleSeasonHubKey(event)
+    return
+  }
+  if (screen === 'calendar-editor') {
+    handleCalendarEditorKey(event)
+    return
+  }
+  if (screen === 'ko-bracket') {
+    handleBracketKey(event)
+    return
+  }
+
   if (screen === 'menu') {
     if (!persistenceReady && saveState !== 'failed') return
     if ((event.code === 'Backspace' || event.code === settings.menuBack) && !event.repeat) {
@@ -1331,6 +2073,8 @@ function onKeyDown(event: KeyboardEvent): void {
       if (menuSelection === 'training') startAttempt(true)
       else if (menuSelection === 'competition') openCompetitionSetup()
       else if (menuSelection === 'settings') openSettings()
+      else if (menuSelection === 'cup') openSeasonHub('cup')
+      else if (menuSelection === 'ko') openSeasonHub('four-hills')
       else if (!openLastReplay() && !latestReplay) {
         lifecycleMessage = 'BRAK ZAPISANEJ POWTÓRKI — ROZEGRAJ SKOK'
         setScreenReaderStatus()
@@ -1440,7 +2184,8 @@ function onKeyDown(event: KeyboardEvent): void {
     if (competition.view === 'finished') {
       if (event.code === 'Enter' && !event.repeat) {
         event.preventDefault()
-        returnToMenu()
+        if (seasonEvent) returnToSeasonHub()
+        else returnToMenu()
       }
       return
     }
@@ -1614,6 +2359,21 @@ function drawFrame(): void {
     drawSettingsScreen(context, { settings, selectedRow, captureTarget, message: settingsMessage })
     return
   }
+  if (screen === 'season' || screen === 'calendar-editor' || (screen === 'ko-bracket' && bracketScreen)) {
+    if (screen === 'season') drawSeasonHub(context, seasonHubView())
+    else if (screen === 'calendar-editor') drawCalendarEditor(context, calendarEditorView())
+    else if (bracketScreen) {
+      drawKoBracket(context, {
+        ...bracketScreen,
+        scroll: bracketScroll,
+        visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
+        footer: '↑/↓ PRZEWIŃ PARY • ENTER / BACKSPACE — WSTECZ',
+      })
+    }
+    drawSaveBanner()
+    if (paused) drawPauseBanner()
+    return
+  }
   if (screen === 'jump' && jump) {
     const leading = trainingLeadingState(jump)
     const sceneState: TrainingSceneState = {
@@ -1698,6 +2458,17 @@ function drawFrame(): void {
       drawStartProcedure(context, snapshot, settings.bindings)
     } else if (competition.view === 'withdraw-confirm') {
       drawWithdrawalConfirmation(context, snapshot)
+    } else if (competition.view === 'round-summary' && snapshot.ko) {
+      drawKoBracket(context, {
+        bracket: snapshot.ko,
+        title: snapshot.ko.resolved ? 'DRABINKA KO — WYNIKI PAR' : 'DRABINKA KO — PARY I SERII',
+        subtitle: `${snapshot.variantLabel ?? 'KONKURS KO'} • ${snapshot.ko.resolved
+          ? '25 ZWYCIĘZCÓW + NAJLEPSI PRZEGRANI → FINAŁ'
+          : 'KWALIFIKACJE ZAKOŃCZONE • 50 ZAWODNIKÓW, BEZ LOSOWANIA'}`,
+        scroll: snapshot.roundSummaryScroll,
+        visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
+        footer: '↑/↓ PRZEWIŃ PARY • ENTER — DALEJ',
+      })
     } else if (competition.view === 'round-summary') {
       drawRoundSummary(context, snapshot, settings.largeText)
     } else {
@@ -1798,18 +2569,20 @@ function drawMenu(): void {
   context.fillRect(32, 52, 175, 126)
   context.strokeStyle = '#536c7a'
   context.strokeRect(32, 52, 175, 126)
-  label('MENU GŁÓWNE', 44, 70, '#f3ead1', 11)
-  drawMenuRow(`${menuSelection === 'training' ? '>' : ' '} TRENING`, 44, 88, menuSelection === 'training')
-  drawMenuRow(`${menuSelection === 'competition' ? '>' : ' '} KONKURS STANDARDOWY`, 44, 105, menuSelection === 'competition')
+  label('MENU GŁÓWNE', 44, 66, '#f3ead1', 11)
+  drawMenuRow(`${menuSelection === 'training' ? '>' : ' '} TRENING`, 44, 80, menuSelection === 'training')
+  drawMenuRow(`${menuSelection === 'competition' ? '>' : ' '} KONKURS STANDARDOWY`, 44, 92, menuSelection === 'competition')
   const replayMenuLabel = !latestReplay
     ? 'POWTÓRKA: BRAK'
     : latestReplayCanOpen()
       ? 'OSTATNIA POWTÓRKA'
       : 'POWTÓRKA NIEDOSTĘPNA'
-  drawMenuRow(`${menuSelection === 'replay' ? '>' : ' '} ${replayMenuLabel}`, 44, 122, menuSelection === 'replay')
-  drawMenuRow(`${menuSelection === 'settings' ? '>' : ' '} USTAWIENIA`, 44, 139, menuSelection === 'settings')
-  drawMenuRow(menuTrainingGateText(), 44, 154, false)
-  drawMenuRow('  [ / ] BELKA NA ZIELONYM', 44, 170, false)
+  drawMenuRow(`${menuSelection === 'replay' ? '>' : ' '} ${replayMenuLabel}`, 44, 104, menuSelection === 'replay')
+  drawMenuRow(`${menuSelection === 'settings' ? '>' : ' '} USTAWIENIA`, 44, 116, menuSelection === 'settings')
+  drawMenuRow(`${menuSelection === 'cup' ? '>' : ' '} PUCHAR SEZONU`, 44, 128, menuSelection === 'cup')
+  drawMenuRow(`${menuSelection === 'ko' ? '>' : ' '} TURNIEJ KO (TEST)`, 44, 140, menuSelection === 'ko')
+  drawMenuRow(menuTrainingGateText(), 44, 158, false)
+  drawMenuRow('  [ / ] BELKA NA ZIELONYM', 44, 172, false)
   if (hill.spec.id === 'h04-planica-flying') drawPlanicaThumbnail(context, 32, 182)
 
   context.fillStyle = '#0c1827'
@@ -1847,7 +2620,7 @@ function drawMenu(): void {
 }
 
 function drawMenuRow(text: string, x: number, y: number, active: boolean): void {
-  label(text, x, y, active ? '#f1bd79' : '#91b4cb', y >= 141 ? 8 : 9)
+  label(text, x, y, active ? '#f1bd79' : '#91b4cb', y >= 150 ? 8 : 9)
 }
 
 function drawBorder(x: number, y: number, width: number, height: number, outer: string, inner: string): void {
@@ -2000,6 +2773,33 @@ window.__retroDebugSnapshot = () => ({
       }
     : null,
   competition: competition?.snapshot() ?? null,
+  season: (() => {
+    const season = activeSeason() ?? shownSeason()
+    return {
+      format: seasonFormat,
+      hubRow,
+      message: seasonMessage,
+      calendarChoice: seasonCalendarChoice,
+      setup: seasonSetup,
+      eventRunning: seasonEvent,
+      active: season
+        ? {
+            id: season.id,
+            setKey: season.setKey,
+            status: season.status,
+            completedEvents: season.results.length,
+            totalEvents: season.calendar.events.length,
+            nextEvent: nextEventIndex(season),
+            calendar: season.calendar.events.map((event) => event.hillId),
+            standings: seasonStandings(season).slice(0, 10).map((row) => ({ participantId: row.participantId, rank: row.rank, value: row.value })),
+          }
+        : null,
+      completedWithSetKey: storedSeasons.filter((candidate) => candidate.setKey === currentSetKey() && candidate.status === 'complete').length,
+      customCalendar: customCalendar.events.map((event) => event.hillId),
+      editor: { events: editorEvents.map((event) => event.hillId), focus: editorFocus, dirty: editorDirty, setKey: editorSetKey(), message: editorMessage },
+      bracket: bracketScreen ? { pairs: bracketScreen.bracket.pairs.length, resolved: bracketScreen.bracket.resolved, scroll: bracketScroll } : null,
+    }
+  })(),
 })
 
 if (debugEnabled) {
