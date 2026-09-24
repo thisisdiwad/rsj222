@@ -87,8 +87,8 @@ beforeEach(async () => {
   db = await openGameDatabase(new IDBFactory())
 })
 
-describe('P22 — settings i migracja IndexedDB v1→v2', () => {
-  it('dodaje tylko settings, zachowując wszystkie magazyny i dane starej bazy', async () => {
+describe('P22 — settings i migracja IndexedDB v1→v3', () => {
+  it('dodaje settings (v2) oraz seasons/calendars (v3), zachowując wszystkie magazyny i dane starej bazy', async () => {
     const factory = new IDBFactory()
     const legacy = await new Promise<IDBDatabase>((resolve, reject) => {
       const open = factory.open(DB_NAME, 1)
@@ -111,10 +111,10 @@ describe('P22 — settings i migracja IndexedDB v1→v2', () => {
     legacy.close()
 
     const upgraded = await openGameDatabase(factory)
-    expect(DB_VERSION).toBe(2)
-    expect(upgraded.version).toBe(2)
+    expect(DB_VERSION).toBe(3)
+    expect(upgraded.version).toBe(3)
     expect([...upgraded.objectStoreNames]).toEqual([
-      STORE.leases, STORE.records, STORE.replays, STORE.results, STORE.sessions, STORE.settings,
+      STORE.calendars, STORE.leases, STORE.records, STORE.replays, STORE.results, STORE.seasons, STORE.sessions, STORE.settings,
     ])
     for (const [store, key] of [
       [STORE.sessions, 'old-session'], [STORE.replays, 'old-replay'],

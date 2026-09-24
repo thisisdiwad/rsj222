@@ -14,10 +14,14 @@ import type {
   CompetitionState,
 } from '../sport/competition'
 import type { CompetitionJumpResult } from '../sport/jumpResult'
+import type { CalendarEvent, SeasonState } from '../sport/season'
 
 export const DB_NAME = 'retro-ski-jumping'
-export const DB_VERSION = 2
+/** v2: settings; v3 (PKG-014): seasons i calendars. Starsze magazyny bez zmian. */
+export const DB_VERSION = 3
 export const SESSION_SCHEMA_VERSION = 2
+export const SEASON_SCHEMA_VERSION = 1
+export const CALENDAR_SCHEMA_VERSION = 1
 export const REPLAY_SCHEMA_VERSION = 1
 export const REPLAY_FORMAT_VERSION = 'pkg006-replay-1'
 
@@ -28,6 +32,8 @@ export const STORE = {
   replays: 'replays',
   leases: 'leases',
   settings: 'settings',
+  seasons: 'seasons',
+  calendars: 'calendars',
 } as const
 
 export type StoreName = (typeof STORE)[keyof typeof STORE]
@@ -81,6 +87,22 @@ export type StoredSession = {
   }
   readonly versions: ContentVersions
   readonly stats: SessionStats
+}
+
+/** Sezon pucharu lub turnieju KO; konkursy są osobnymi sesjami `${id}-eN`. */
+export type StoredSeason = SeasonState & {
+  readonly schemaVersion: number
+  readonly revision: number
+  readonly savedAtMs: number
+}
+
+/** Zapisany własny kalendarz (P24). Walidacja skoczni następuje przy użyciu. */
+export type StoredCalendar = {
+  readonly schemaVersion: number
+  readonly id: string
+  readonly name: string
+  readonly events: readonly CalendarEvent[]
+  readonly savedAtMs: number
 }
 
 export type StoredResult = {
@@ -344,6 +366,64 @@ export function validateStoredSession(raw: unknown): ValidationResult<StoredSess
   }
 
   return { ok: true, value: raw as unknown as StoredSession }
+}
+
+function validateCalendarEvents(raw: unknown): string | null {
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > 40) return 'kalendarz poza zakresem 1–40 konkursów'
+  for (const event of raw) {
+    if (!isPlainObject(event) || !isNonEmptyString(event.hillId) || !isNonEmptyString(event.hillVersion)) {
+      return 'konkurs kalendarza bez skoczni lub wersji'
+    }
+  }
+  return null
+}
+
+export function validateStoredCalendar(raw: unknown): ValidationResult<StoredCalendar> {
+  if (!isPlainObject(raw)) return { ok: false, reason: 'kalendarz nie jest obiektem' }
+  if (raw.schemaVersion !== CALENDAR_SCHEMA_VERSION) {
+    return { ok: false, reason: `nieznana wersja kalendarza: ${String(raw.schemaVersion)}` }
+  }
+  if (!isNonEmptyString(raw.id) || !isNonEmptyString(raw.name)) return { ok: false, reason: 'kalendarz bez nazwy' }
+  const problem = validateCalendarEvents(raw.events)
+  return problem ? { ok: false, reason: problem } : { ok: true, value: raw as unknown as StoredCalendar }
+}
+
+export function validateStoredSeason(raw: unknown): ValidationResult<StoredSeason> {
+  if (!isPlainObject(raw)) return { ok: false, reason: 'sezon nie jest obiektem' }
+  if (raw.schemaVersion !== SEASON_SCHEMA_VERSION) {
+    return { ok: false, reason: `nieznana wersja sezonu: ${String(raw.schemaVersion)}` }
+  }
+  if (!isNonEmptyString(raw.id) || !isNonEmptyString(raw.setKey)) return { ok: false, reason: 'sezon bez identyfikatora' }
+  if (raw.format !== 'cup' && raw.format !== 'four-hills') return { ok: false, reason: 'nieznany format sezonu' }
+  if (!['active', 'complete', 'abandoned'].includes(String(raw.status))) return { ok: false, reason: 'nieznany status sezonu' }
+  if (!Number.isInteger(raw.revision) || !isFiniteNumber(raw.savedAtMs) || !isFiniteNumber(raw.createdAtMs)) {
+    return { ok: false, reason: 'sezon bez rewizji lub czasu' }
+  }
+  if (!isPlainObject(raw.calendar) || !isNonEmptyString(raw.calendar.name)) return { ok: false, reason: 'sezon bez kalendarza' }
+  const calendarProblem = validateCalendarEvents(raw.calendar.events)
+  if (calendarProblem) return { ok: false, reason: calendarProblem }
+  if (!isPlainObject(raw.setup) || !Number.isInteger(raw.setup.profileCount)
+    || !['easy', 'normal', 'hard'].includes(String(raw.setup.difficulty))) {
+    return { ok: false, reason: 'sezon bez ustawień obsady' }
+  }
+  if (!Array.isArray(raw.results) || raw.results.length > (raw.calendar.events as unknown[]).length) {
+    return { ok: false, reason: 'wyniki sezonu poza kalendarzem' }
+  }
+  for (const [index, result] of raw.results.entries()) {
+    if (!isPlainObject(result) || result.eventIndex !== index) return { ok: false, reason: 'wyniki sezonu poza kolejnością' }
+    if (result.status !== 'complete' && result.status !== 'cancelled') return { ok: false, reason: 'nieznany status konkursu sezonu' }
+    if (!Array.isArray(result.placements)) return { ok: false, reason: 'konkurs sezonu bez tabeli' }
+    for (const placement of result.placements) {
+      if (!isPlainObject(placement) || !isNonEmptyString(placement.participantId) || !isNonEmptyString(placement.name)) {
+        return { ok: false, reason: 'wiersz tabeli sezonu bez zawodnika' }
+      }
+      if (placement.rank !== null && !Number.isInteger(placement.rank)) return { ok: false, reason: 'miejsce nie jest liczbą' }
+      if (placement.totalTenths !== null && !Number.isInteger(placement.totalTenths)) {
+        return { ok: false, reason: 'wynik konkursu sezonu nie jest liczbą całkowitą' }
+      }
+    }
+  }
+  return { ok: true, value: raw as unknown as StoredSeason }
 }
 
 export function validateStoredReplay(raw: unknown): ValidationResult<StoredReplay> {
