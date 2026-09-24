@@ -1,0 +1,278 @@
+node.exe : npm notice run retro-ski-jumping@0.1.0 build
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...ing@0.1.0 build:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run vite build
+[36mvite v8.3.0 [32mbuilding client environment for production...[36m[39m
+transforming...
+Ôťô 33 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.76 kB Ôöé gzip:  0.41 kB
+dist/assets/index-DpIzpYYS.css    0.68 kB Ôöé gzip:  0.40 kB
+dist/assets/index-BwrTo89h.js   177.37 kB Ôöé gzip: 56.38 kB
+
+[32mÔťô built in 198ms[39m
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/competition.spec.ts tests/browser/jump.spec.ts tests/browser/persistence.s
+pec.ts tests/browser/shell.spec.ts tests/browser/z_capture_pkg008.spec.ts tests/browser/z_capture_pose_evidence.spec.ts
+ tests/browser/z_capture_pkg008_video.spec.ts
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+
+Running 37 tests using 1 worker
+
+  Ôťô   1 tests\browser\competition.spec.ts:479:1 ÔÇ║ pe┼ény konkurs: konfiguracja Ôćĺ kwalifikacje Ôćĺ fina┼é Ôćĺ wynik, klawiatura i hotseat (27.2s)
+  Ôťô   2 tests\browser\competition.spec.ts:540:1 ÔÇ║ 10 profili oraz rezygnacja wymagaj─ů konfiguracji i potwierdzenia (711ms)
+  Ôťô   3 tests\browser\competition.spec.ts:561:1 ÔÇ║ zielone ┼Ťwiat┼éo pod wstrzymaniem jury blokuje start i nie pokazuje wezwania do belki (3.9s)
+  Ôťô   4 tests\browser\competition.spec.ts:590:1 ÔÇ║ konfiguracja prze┼é─ůcza zwart─ů obsad─Ö dla dw├│ch profili i wraca Backspace do menu (2.1s)
+  Ôťô   5 tests\browser\persistence.spec.ts:446:3 ÔÇ║ PKG-006 ÔÇö trwa┼éa sesja i replay ÔÇ║ konkurs Ôćĺ wynik Ôćĺ reload Ôćĺ wznowienie Ôćĺ ostatnia powt├│rka, wy┼é─ůcznie klawiatur─ů (21.9s)
+  Ôťô   6 tests\browser\persistence.spec.ts:557:3 ÔÇ║ PKG-006 ÔÇö trwa┼éa sesja i replay ÔÇ║ trening nie ustanawia oficjalnego rekordu konkursowego (15.6s)
+  Ôťô   7 tests\browser\persistence.spec.ts:619:3 ÔÇ║ PKG-006 ÔÇö trwa┼éa sesja i replay ÔÇ║ replay archiwalnej wersji pokazuje graczowy komunikat zgodno┼Ťci bez przeliczania wyniku (4.1s)
+  Ôťô   8 tests\browser\persistence.spec.ts:712:3 ÔÇ║ PKG-006 ÔÇö trwa┼éa sesja i replay ÔÇ║ dwie karty: tylko w┼éa┼Ťciciel lease zapisuje, przej─Öcie po wyga┼Ťni─Öciu (20.9s)
+Pe┼ény skok: impulseTick=735, edgeTick=770, faktyczny lead=35 tick├│w
+  Ôťś   9 tests\browser\z_capture_pkg008_video.spec.ts:277:1 ÔÇ║ nagranie pe┼énego skoku cz┼éowieka w scenie produkcyjnej (9.4s)
+Konkurs: impulseTick=683, edgeTick=707, faktyczny lead=24 tick├│w
+Konkurs: status=landed, dystans=108.02963603783014 m
+  Ôťô  10 tests\browser\z_capture_pkg008_video.spec.ts:317:1 ÔÇ║ nagranie fragmentu konkursu z botami (24.1s)
+  Ôťô  11 tests\browser\jump.spec.ts:412:3 ÔÇ║ scena produkcyjna i techniczna s─ů zgodne przed opuszczeniem belki w 960├Ś540 (1.0s)
+  Ôťô  12 tests\browser\jump.spec.ts:412:3 ÔÇ║ scena produkcyjna i techniczna s─ů zgodne przed opuszczeniem belki w 1920├Ś1080 (930ms)
+  Ôťś  13 tests\browser\jump.spec.ts:434:1 ÔÇ║ pe┼ény skok sterowany wy┼é─ůcznie klawiatur─ů ko┼äczy si─Ö stanem terminalnym (8.5s)
+  Ôťô  14 tests\browser\jump.spec.ts:526:1 ÔÇ║ brak przygotowania ko┼äczy si─Ö upadkiem i rozliczeniem FallSettled (11.7s)
+  Ôťô  15 tests\browser\jump.spec.ts:560:1 ÔÇ║ R wybiera osobn─ů r├│wnoleg┼é─ů animacj─Ö podej┼Ťcia i kontaktu (15.1s)
+  Ôťô  16 tests\browser\jump.spec.ts:605:1 ÔÇ║ pauza w locie zatrzymuje symulacj─Ö i nie zostawia trzymanego klawisza (15.2s)
+  Ôťô  17 tests\browser\jump.spec.ts:650:1 ÔÇ║ ukrycie karty w locie pauzuje symulacj─Ö bez nadrabiania czasu (8.2s)
+  Ôťô  18 tests\browser\jump.spec.ts:675:1 ÔÇ║ zmiana belki w menu zmienia d┼éugo┼Ť─ç rozbiegu pr├│by (1.5s)
+  Ôťô  19 tests\browser\jump.spec.ts:697:1 ÔÇ║ 10 kolejnych pr├│b dzia┼éa wy┼é─ůcznie klawiatur─ů i nie gubi stanu treningu (1.8m)
+  Ôťô  20 tests\browser\jump.spec.ts:732:1 ÔÇ║ one-event-one-sound: udany skok treningowy gra ka┼╝dy d┼║wi─Ök raz (15.2s)
+  Ôťô  21 tests\browser\shell.spec.ts:71:1 ÔÇ║ shell dzia┼éa klawiatur─ů, skaluje obraz i prze┼╝ywa odmow─Ö API (1.8s)
+  Ôťô  22 tests\browser\shell.spec.ts:164:1 ÔÇ║ canvas u┼╝ywa skali ca┼ékowitej i awaryjnego dopasowania poni┼╝ej 480├Ś270 (1.1s)
+  Ôťô  23 tests\browser\shell.spec.ts:194:1 ÔÇ║ debug i KeyD s─ů dost─Öpne wy┼é─ůcznie pod ?debug (1.1s)
+  Ôťô  24 tests\browser\shell.spec.ts:217:1 ÔÇ║ prefers-reduced-motion reaguje na ┼╝ywo i zatrzymuje ruch dekoracyjny (685ms)
+  Ôťô  25 tests\browser\z_capture_pkg008.spec.ts:279:5 ÔÇ║ PKG-008 ÔÇö ekrany i konkurs ÔÇ║ komplet ekran├│w 960├Ś540: tytu┼éÔćĺmenuÔćĺkonkursÔćĺpowt├│rkaÔćĺtabela ko┼äcowa (37.9s)
+  Ôťô  26 tests\browser\z_capture_pkg008.spec.ts:279:5 ÔÇ║ PKG-008 ÔÇö ekrany i konkurs ÔÇ║ komplet ekran├│w 1920├Ś1080: tytu┼éÔćĺmenuÔćĺkonkursÔćĺpowt├│rkaÔćĺtabela ko┼äcowa (53.0s)
+  Ôťô  27 tests\browser\z_capture_pkg008.spec.ts:359:5 ÔÇ║ PKG-008 ÔÇö powt├│rka z niezgodn─ů wersj─ů danych wizualnych ÔÇ║ widok techniczny powt├│rki 960├Ś540 (4.0s)
+  Ôťô  28 tests\browser\z_capture_pkg008.spec.ts:359:5 ÔÇ║ PKG-008 ÔÇö powt├│rka z niezgodn─ů wersj─ů danych wizualnych ÔÇ║ widok techniczny powt├│rki 1920├Ś1080 (3.9s)
+  Ôťô  29 tests\browser\z_capture_pkg008.spec.ts:439:3 ÔÇ║ PKG-008 ÔÇö fazy skoku (960├Ś540) ÔÇ║ GateGreen Ôćĺ Inrun Ôćĺ Takeoff Ôćĺ Flight├Ś3 Ôćĺ LandingPrep Ôćĺ Outrun Ôćĺ FinishLine (14.5s)
+  Ôťô  30 tests\browser\z_capture_pkg008.spec.ts:503:3 ÔÇ║ PKG-008 ÔÇö fazy skoku (960├Ś540) ÔÇ║ Fall Ôćĺ FallSettled (brak przygotowania l─ůdowania) (13.1s)
+  Ôťô  31 tests\browser\z_capture_pkg008.spec.ts:527:3 ÔÇ║ PKG-008 ÔÇö fazy skoku (960├Ś540) ÔÇ║ podp├│rka jedn─ů i obiema d┼éo┼ämi jest widoczna w rzeczywistym skoku (30.5s)
+  -  32 tests\browser\z_capture_pkg008.spec.ts:601:3 ÔÇ║ PKG-008 ÔÇö starsze wycinki 1:1 wymagaj─ůce wsp├│┼édzielonego katalogu ÔÇ║ skoczek, HUD i kraw─Öd┼║ zeskoku z fazy Outrun (960├Ś540)
+  -  33 tests\browser\z_capture_pkg008.spec.ts:616:3 ÔÇ║ PKG-008 ÔÇö starsze wycinki 1:1 wymagaj─ůce wsp├│┼édzielonego katalogu ÔÇ║ skoczek w locie ÔÇö sprawdzenie V-stylu nart (flight-mid, 960├Ś540)
+  -  34 tests\browser\z_capture_pkg008.spec.ts:623:3 ÔÇ║ PKG-008 ÔÇö starsze wycinki 1:1 wymagaj─ůce wsp├│┼édzielonego katalogu ÔÇ║ skoczek na belce, rozbiegu, wybiciu i l─ůdowaniu (960├Ś540)
+  -  35 tests\browser\z_capture_pkg008.spec.ts:642:3 ÔÇ║ PKG-008 ÔÇö starsze wycinki 1:1 wymagaj─ůce wsp├│┼édzielonego katalogu ÔÇ║ siatka pikseli: ten sam fragment tytu┼éu przy 960├Ś540 i 1920├Ś1080
+  Ôťô  36 tests\browser\z_capture_pose_evidence.spec.ts:52:1 ÔÇ║ 41 klatek, sylwetki, start z belki, podp├│rki, przej┼Ťcia i wysoko┼Ťci cienia trafiaj─ů wy┼é─ůcznie do outputPath (604ms)
+  Ôťô  37 tests\browser\z_capture_pose_evidence.spec.ts:111:1 ÔÇ║ replay u┼╝ywa wieku zapisanych zdarze┼ä, a upadek nie wraca do klatki zero (22ms)
+
+
+  1) tests\browser\jump.spec.ts:434:1 ÔÇ║ pe┼ény skok sterowany wy┼é─ůcznie klawiatur─ů ko┼äczy si─Ö stanem terminalnym 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "flight"
+    Received: "fall"
+
+      460 |   // Wczesna sylwetka lotu po zwolnieniu korekty (nadal Flight, przed T).
+      461 |   const earlyFlight = (await snapshot(page)).jump
+    > 462 |   expect(earlyFlight?.visualPose).toBe('flight')
+          |                                   ^
+      463 |   expect(earlyFlight?.visualFrame).toBeGreaterThanOrEqual(0)
+      464 |   expect(earlyFlight?.visualFrame).toBeLessThan(8)
+      465 |
+        at C:\retro-ski-jumping\tests\browser\jump.spec.ts:462:35
+
+    Error Context: test-results\jump-pe┼ény-skok-sterowany--dccfb-┼äczy-si─Ö-stanem-terminalnym\error-context.md
+
+    attachment #2: trace (application/zip) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\jump-pe┼ény-skok-sterowany--dccfb-┼äczy-si─Ö-stanem-terminalnym\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\jump-pe┼ény-skok-sterowany--dccfb-┼äczy-si─Ö-stanem-terminalnym\trace.zip
+
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  2) tests\browser\z_capture_pkg008_video.spec.ts:277:1 ÔÇ║ nagranie pe┼énego skoku cz┼éowieka w scenie produkcyjnej 
+
+    Error: Brak landingPrep; nie ponawiam KeyT w fazie Fall; status=null, dystans=28.710570415124288 m; zdarzenia: 64 gateOpen, 735 takeoffImpulseStart, 770 takeoffEdge, 921 measured, 921 contact, 921 fall
+
+      150 |     if (jump?.events.some((entry) => entry.endsWith(` ${event}`))) return true
+      151 |     if (!jump || !allowedPhases.includes(jump.phase)) {
+    > 152 |       throw new Error(`Brak ${event}; nie ponawiam ${key} w fazie ${jump?.phase ?? 'brak skoku'}; status=${jump?.status}, dystans=${jump?.distance} m; zdarzenia: ${jump?.events.join(', ')}`)
+          |             ^
+      153 |     }
+      154 |     return false
+      155 |   }
+        at confirmed (C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:152:13)
+        at pressUntilJumpEvent (C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:157:9)
+        at C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:300:3
+
+    attachment #1: video (video/webm) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\z_capture_pkg008_video-nag-b0448-wieka-w-scenie-produkcyjnej\video.webm
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\z_capture_pkg008_video-nag-b0448-wieka-w-scenie-produkcyjnej\error-context.md
+
+    attachment #3: trace (application/zip) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\z_capture_pkg008_video-nag-b0448-wieka-w-scenie-produkcyjnej\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\z_capture_pkg008_video-nag-b0448-wieka-w-scenie-produkcyjnej\trace.zip
+
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  2 failed
+    tests\browser\jump.spec.ts:434:1 ÔÇ║ pe┼ény skok sterowany wy┼é─ůcznie klawiatur─ů ko┼äczy si─Ö stanem terminalnym 
+    tests\browser\z_capture_pkg008_video.spec.ts:277:1 ÔÇ║ nagranie pe┼énego skoku cz┼éowieka w scenie produkcyjnej 
+  4 skipped
+  31 passed (8.2m)
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/jump.spec.ts -g pe├ůÔÇÜny skok sterowany wy├ůÔÇÜ├äÔÇŽcznie klawiatur├äÔÇŽ
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.
+
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/jump.spec.ts -g terminalnym
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+
+Running 1 test using 1 worker
+
+  Ôťô  1 tests\browser\jump.spec.ts:434:1 ÔÇ║ pe┼ény skok sterowany wy┼é─ůcznie klawiatur─ů ko┼äczy si─Ö stanem terminalnym (20.4s)
+
+  1 passed (24.8s)
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/z_capture_pkg008_video.spec.ts -g czowieka w scenie
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.
+
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/z_capture_pkg008_video.spec.ts -g produkcyjnej
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+
+Running 1 test using 1 worker
+
+Pe┼ény skok: impulseTick=759, edgeTick=786, faktyczny lead=27 tick├│w
+Pe┼ény skok: status=landed, dystans=102.44271316987776 m
+  Ôťô  1 tests\browser\z_capture_pkg008_video.spec.ts:277:1 ÔÇ║ nagranie pe┼énego skoku cz┼éowieka w scenie produkcyjnej (16.6s)
+
+  1 passed (18.9s)
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test -c tests/browser/r16.capture.config.ts
+
+Running 1 test using 1 worker
+
+  Ôťô  1 tests\browser\z_capture_pkg008_r16.spec.ts:10:1 ÔÇ║ PKG-008 r16 ÔÇö celowane sceny belki i rzeczywistego idealnego wybicia (3.3s)
+
+  1 passed (4.5s)
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/z_capture_pkg008_video.spec.ts -g botami
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+
+Running 1 test using 1 worker
+
+Konkurs: impulseTick=693, edgeTick=707, faktyczny lead=14 tick├│w
+  Ôťś  1 tests\browser\z_capture_pkg008_video.spec.ts:317:1 ÔÇ║ nagranie fragmentu konkursu z botami (12.6s)
+
+
+  1) tests\browser\z_capture_pkg008_video.spec.ts:317:1 ÔÇ║ nagranie fragmentu konkursu z botami ÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error: Brak landingPrep; nie ponawiam KeyT w fazie Fall; status=null, dystans=36.32679435975078 m; zdarzenia: 0 gateOpen, 693 takeoffImpulseStart, 707 takeoffEdge, 888 measured, 888 contact, 888 fall
+
+      150 |     if (jump?.events.some((entry) => entry.endsWith(` ${event}`))) return true
+      151 |     if (!jump || !allowedPhases.includes(jump.phase)) {
+    > 152 |       throw new Error(`Brak ${event}; nie ponawiam ${key} w fazie ${jump?.phase ?? 'brak skoku'}; status=${jump?.status}, dystans=${jump?.distance} m; zdarzenia: ${jump?.events.join(', ')}`)
+          |             ^
+      153 |     }
+      154 |     return false
+      155 |   }
+        at confirmed (C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:152:13)
+        at pressUntilJumpEvent (C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:157:9)
+        at playMinimalHumanJump (C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:272:3)
+        at C:\retro-ski-jumping\tests\browser\z_capture_pkg008_video.spec.ts:332:3
+
+    attachment #1: video (video/webm) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\z_capture_pkg008_video-nagranie-fragmentu-konkursu-z-botami\video.webm
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\z_capture_pkg008_video-nagranie-fragmentu-konkursu-z-botami\error-context.md
+
+    attachment #3: trace (application/zip) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\z_capture_pkg008_video-nagranie-fragmentu-konkursu-z-botami\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\z_capture_pkg008_video-nagranie-fragmentu-konkursu-z-botami\trace.zip
+
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  1 failed
+    tests\browser\z_capture_pkg008_video.spec.ts:317:1 ÔÇ║ nagranie fragmentu konkursu z botami ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+node.exe : npm notice run retro-ski-jumping@0.1.0 npx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\admin\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...mping@0.1.0 npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/browser/z_capture_pkg008_video.spec.ts -g botami
+[WebServer] npm notice run retro-ski-jumping@0.1.0 preview
+[WebServer] npm notice run vite preview --host 127.0.0.1 --port 4173
+
+Running 1 test using 1 worker
+
+Konkurs: impulseTick=686, edgeTick=707, faktyczny lead=21 tick├│w
+Konkurs: status=landed, dystans=99.98747699997837 m
+  Ôťô  1 tests\browser\z_capture_pkg008_video.spec.ts:317:1 ÔÇ║ nagranie fragmentu konkursu z botami (25.0s)
+
+  1 passed (27.5s)
