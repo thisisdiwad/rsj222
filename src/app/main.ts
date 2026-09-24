@@ -41,7 +41,7 @@ import {
   buildKoBracketView,
   CompetitionSession,
   LARGE_ROUND_SUMMARY_VISIBLE_ROWS,
-  ROUND_LABEL,
+  roundLabel,
   ROUND_SUMMARY_VISIBLE_ROWS,
   type CommitRequest,
   type KoBracketView,
@@ -67,6 +67,19 @@ import {
   type SeasonSetup,
 } from '../sport/season'
 import { drawCalendarEditor, drawKoBracket, drawSeasonHub, type SeasonHubRow } from '../render/seasonView'
+import { drawKothBoard, drawKothSetup, drawTeamSetup, drawTeamTable, type SetupRow } from '../render/teamView'
+import {
+  buildKothEntrants,
+  buildTeamRoster,
+  cycleLineupSlot,
+  defaultLineup,
+  lineupProblems,
+  slotAthleteName,
+  TEAM_CODES,
+  type TeamLineup,
+} from './modes'
+import { LOCAL_PROFILES } from '../player/profiles'
+import { TEAM_SIZE, type TeamFormat } from '../sport/team'
 import {
   drawCompetitionProgress,
   drawCompetitionSetup,
@@ -92,8 +105,9 @@ import { drawSettingsScreen, SETTINGS_ROWS, type BindingRow, type SettingsRow } 
 import { DEFAULT_SETTINGS, normalizeSettings, rebindSettings, resolveBoundAction, type GameSettings } from '../settings/settings'
 
 type Screen = 'title' | 'menu' | 'settings' | 'jump' | 'competition-setup' | 'competition' | 'replay'
-  | 'season' | 'calendar-editor' | 'ko-bracket'
-type MenuSelection = 'training' | 'competition' | 'replay' | 'settings' | 'cup' | 'ko'
+  | 'season' | 'calendar-editor' | 'ko-bracket' | 'mode-setup'
+type MenuSelection = 'training' | 'competition' | 'replay' | 'settings' | 'cup' | 'ko' | 'team' | 'superteam' | 'koth'
+type ModeFormat = TeamFormat | 'koth'
 type HubRow = 'play' | 'calendar' | 'profiles' | 'difficulty' | 'edit' | 'bracket' | 'abandon'
 type SaveState = 'idle' | 'saving' | 'saved' | 'failed' | 'readonly'
 type DebugSnapshot = {
@@ -201,6 +215,17 @@ type DebugSnapshot = {
     customCalendar: string[]
     editor: { events: string[]; focus: number; dirty: boolean; setKey: string; message: string }
     bracket: { pairs: number; resolved: boolean; scroll: number } | null
+  }
+  mode: {
+    format: ModeFormat
+    focus: string
+    profileCount: number
+    botCount: number
+    difficulty: AiDifficulty
+    humanSlots: string[]
+    message: string
+    resumable: boolean
+    running: boolean
   }
 }
 
@@ -425,11 +450,11 @@ function usesFixedTicks(): boolean {
   return competition.view === 'start' || competition.view === 'jump'
 }
 
-/** PKG-014: nowe tryby dopisane na końcu, więc dotychczasowe skróty menu (↓×2, ↓×3) nie zmieniają celu. */
-const MENU_ORDER: readonly MenuSelection[] = ['training', 'competition', 'replay', 'settings', 'cup', 'ko']
+/** PKG-014/015: nowe tryby dopisane na końcu, więc dotychczasowe skróty menu (↓×2, ↓×3) nie zmieniają celu. */
+const MENU_ORDER: readonly MenuSelection[] = ['training', 'competition', 'replay', 'settings', 'cup', 'ko', 'team', 'superteam', 'koth']
 const MENU_NAMES: Readonly<Record<MenuSelection, string>> = {
   training: 'Trening', competition: 'Konkurs standardowy', replay: 'Ostatnia powtórka', settings: 'Ustawienia',
-  cup: 'Puchar sezonu', ko: 'Turniej KO',
+  cup: 'Puchar sezonu', ko: 'Turniej KO', team: 'Konkurs drużynowy', superteam: 'Super Team', koth: 'King of the Hill',
 }
 const SETTINGS_NAMES: Readonly<Record<SettingsRow, string>> = {
   takeoff: 'Wybicie', left: 'Lot w lewo', right: 'Lot w prawo', telemark: 'Telemark', parallel: 'Dwie nogi',
@@ -509,6 +534,19 @@ function setScreenReaderStatus(): void {
     return
   }
 
+  if (screen === 'mode-setup') {
+    const slot = focusedSlot()
+    const focus = slot && modeFormat !== 'koth'
+      ? `Drużyna ${TEAM_CODES[slot.team]}, ${GROUP_NAMES[slot.group]}: ${modeLineups[modeFormat].slots[slot.team]![slot.group]!.kind === 'human' ? 'gracz' : 'bot'}, zawodnik ${slotAthleteName(modeLineups[modeFormat], slot.team, slot.group, modeProfiles())}.`
+      : `${modeSettingRows()[modeFocus]?.label ?? ''}.`
+    screenReaderStatus.textContent = paused
+      ? `Pauza: ${pauseReason}. Enter wznawia.`
+      : `${MODE_TITLES[modeFormat]}. ${hillLabel()}. ${focus} ${modeSetupMessage()}. ${describeResume(modeResume) ?? ''} `
+        + 'Góra i dół wybiera, lewo i prawo zmienia, Page Up i Page Down przeskakuje drużynę, Enter startuje, Backspace wraca do menu.'
+    canvas.setAttribute('aria-label', `Retro Ski Jumping — ${MODE_TITLES[modeFormat].toLowerCase()}`)
+    return
+  }
+
   if (screen === 'ko-bracket' && bracketScreen) {
     screenReaderStatus.textContent = `${bracketScreen.title}. ${bracketScreen.subtitle}. Góra i dół przewija pary, Enter lub Backspace wraca.`
     canvas.setAttribute('aria-label', 'Retro Ski Jumping — drabinka KO')
@@ -524,8 +562,12 @@ function setScreenReaderStatus(): void {
         : state.view === 'jump'
           ? `Skok konkursowy ${state.currentParticipantName}, faza ${state.jump?.phase}.`
           : state.view === 'finished'
-            ? `Konkurs zakończony. Enter wraca do ${seasonEvent ? 'sezonu' : 'menu'}.`
-            : state.ko
+            ? `Konkurs zakończony. Enter wraca do ${seasonEvent ? 'sezonu' : modeRunning ? 'konfiguracji trybu' : 'menu'}.`
+            : state.teams
+              ? `${state.roundLabel}. Tabela drużynowa, prowadzi ${state.teams.rows[0]?.name ?? ''}. Enter dalej.`
+              : state.koth
+                ? `${state.koth.roundLabel}. ${state.koth.verdict}. Enter dalej.`
+                : state.ko
               ? `Drabinka KO: ${state.ko.pairs.length} par${state.ko.resolved ? ', zwycięzcy i najlepsi przegrani wyłonieni' : ''}. Góra i dół przewija, Enter dalej.`
               : `${state.roundLabel}. Tabela konkursu.`
     screenReaderStatus.textContent = paused ? `Pauza: ${pauseReason}. Enter wznawia.` : detail
@@ -1709,6 +1751,347 @@ function handleBracketKey(event: KeyboardEvent): void {
   setScreenReaderStatus()
 }
 
+// --- PKG-015 / P26–P28: drużyny, Super Team i King of the Hill -----------------------
+
+const MODE_TITLES: Readonly<Record<ModeFormat, string>> = {
+  team: 'KONKURS DRUŻYNOWY',
+  superteam: 'SUPER TEAM',
+  koth: 'KING OF THE HILL',
+}
+/** Stały seed trybu: ta sama obsada i skocznia dają te same warunki. */
+const MODE_SEEDS: Readonly<Record<ModeFormat, number>> = { team: 0x7ea4, superteam: 0x5e72, koth: 0xc0e1 }
+const GROUP_NAMES = ['GR. I', 'GR. II', 'GR. III', 'GR. IV'] as const
+
+let modeFormat: ModeFormat = 'team'
+let modeProfileCount = 1
+let modeBotCount = 3
+let modeDifficulty: AiDifficulty = 'normal'
+let modeLineups: Record<TeamFormat, TeamLineup> = {
+  team: defaultLineup('team', LOCAL_PROFILES.slice(0, 1)),
+  superteam: defaultLineup('superteam', LOCAL_PROFILES.slice(0, 1)),
+}
+/** Pozycja fokusu: 0 gracze, 1 AI/boty, dalej (drużyny) miejsca team×size+group. */
+let modeFocus = 0
+let modeMessage = ''
+let modeError = false
+let modeResume: StoredSession | null = null
+let modeBusy = false
+let modeLoading = false
+/** Konkurs trybu w toku: Enter na końcu wraca do konfiguracji trybu. */
+let modeRunning = false
+
+function modeProfiles() {
+  return LOCAL_PROFILES.slice(0, modeProfileCount)
+}
+
+function modeSessionId(format: ModeFormat = modeFormat): string {
+  return `${format}-${hill.spec.id}`
+}
+
+function modeSettingIds(): readonly ('profiles' | 'bots' | 'difficulty')[] {
+  return modeFormat === 'koth' ? ['profiles', 'bots', 'difficulty'] : ['profiles', 'difficulty']
+}
+
+function modeSlotCount(): number {
+  return modeFormat === 'koth' ? 0 : modeLineups[modeFormat].slots.length * TEAM_SIZE[modeFormat]
+}
+
+/** Fokus na miejscu drużyny → {team, group}; na wierszu ustawień → null. */
+function focusedSlot(): { team: number; group: number } | null {
+  if (modeFormat === 'koth') return null
+  const index = modeFocus - modeSettingIds().length
+  if (index < 0) return null
+  const size = TEAM_SIZE[modeFormat]
+  return { team: Math.floor(index / size), group: index % size }
+}
+
+function describeResume(session: StoredSession | null): string | null {
+  if (!session) return null
+  const state = session.competition
+  const round = state.rounds[state.currentRoundIndex]?.id ?? 'first'
+  return `ZAPIS: ${roundLabel(round)} • SKOK ${state.nextStartIndex + 1} — ENTER WZNAWIA, N NOWY`
+}
+
+async function refreshModeResume(): Promise<void> {
+  modeResume = null
+  if (!database) return
+  modeLoading = true
+  try {
+    const loaded = await loadSession(database, modeSessionId())
+    if (loaded.kind === 'ok'
+      && loaded.session.competition.status === 'active'
+      && loaded.session.competition.format === modeFormat
+      && loaded.session.hillId === hill.spec.id
+      && loaded.session.versions.hill === hill.spec.hillVersion) {
+      modeResume = loaded.session
+    }
+  } catch (cause) {
+    modeMessage = `NIE ODCZYTANO ZAPISU — ${cause instanceof Error ? cause.message : String(cause)}`
+    modeError = true
+  } finally {
+    modeLoading = false
+  }
+}
+
+function openModeSetup(format: ModeFormat): void {
+  modeFormat = format
+  modeFocus = 0
+  modeMessage = ''
+  modeError = false
+  screen = 'mode-setup'
+  input.reset()
+  lastInput = emptyTickInput()
+  setScreenReaderStatus()
+  void refreshModeResume().then(() => setScreenReaderStatus())
+}
+
+function changeModeProfiles(direction: -1 | 1): void {
+  modeProfileCount = Math.max(1, Math.min(10, modeProfileCount + direction))
+  // KotH: łącznie 2–10 uczestników.
+  modeBotCount = Math.max(Math.max(0, 2 - modeProfileCount), Math.min(10 - modeProfileCount, modeBotCount))
+  const profiles = modeProfiles()
+  modeLineups = { team: defaultLineup('team', profiles), superteam: defaultLineup('superteam', profiles) }
+  modeMessage = 'OBSADA USTAWIONA OD NOWA: GRACZE NA POCZĄTKU PIERWSZEJ DRUŻYNY'
+  modeError = false
+}
+
+function modeProblems(): readonly string[] {
+  if (modeFormat === 'koth') {
+    const total = modeProfileCount + modeBotCount
+    return total < 2 || total > 10 ? ['łącznie potrzeba 2-10 uczestników'] : []
+  }
+  return lineupProblems(modeLineups[modeFormat], modeProfiles())
+}
+
+async function startModeCompetition(restored: StoredSession | null): Promise<void> {
+  if (modeBusy || modeLoading || hillLoading || (!persistenceReady && saveState !== 'failed')) return
+  const problems = restored ? [] : modeProblems()
+  if (problems.length > 0) {
+    modeMessage = `NIE MOŻNA ROZPOCZĄĆ — ${problems[0]!.toUpperCase()}`
+    modeError = true
+    return
+  }
+  modeBusy = true
+  try {
+    await saveChain.catch(() => undefined)
+    const sessionId = modeSessionId()
+    await switchLease(sessionId)
+    const profileCount = restored ? restored.setup.profileCount : modeProfileCount
+    const difficulty = restored ? restored.setup.difficulty : modeDifficulty
+    const profiles = LOCAL_PROFILES.slice(0, profileCount)
+    const roster = restored ? undefined
+      : modeFormat === 'koth'
+        ? { entrants: buildKothEntrants(profiles, modeBotCount, difficulty) }
+        : buildTeamRoster(modeLineups[modeFormat], profiles, difficulty)
+    competition = new CompetitionSession(hill, profileCount, difficulty, enterDown, restored, sessionId, {
+      format: modeFormat,
+      seed: MODE_SEEDS[modeFormat],
+      label: MODE_TITLES[modeFormat],
+      roster,
+    })
+    competition.setRoundSummaryVisibleRows(settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS)
+    // Nowy konkurs nadpisuje poprzedni zapis tego trybu, więc startuje od jego rewizji.
+    if (!restored && modeResume) competition.revision = modeResume.revision
+    else if (!restored && database) {
+      const previous = await loadSession(database, sessionId)
+      if (previous.kind === 'ok') competition.revision = previous.session.revision
+    }
+    modeRunning = true
+    attachPersistence(competition)
+    if (sessionLease?.status.role === 'owner') sessionLease.startHeartbeat()
+    screen = 'competition'
+    paused = false
+    tick = 0
+    input.reset()
+    lastInput = emptyTickInput()
+    const now = performance.now()
+    sessionClock.start(now)
+    fixedClock.reset(now)
+    lifecycleMessage = MODE_TITLES[modeFormat]
+  } catch (cause) {
+    modeMessage = `NIE MOŻNA ROZPOCZĄĆ — ${cause instanceof Error ? cause.message : String(cause)}`
+    modeError = true
+  } finally {
+    modeBusy = false
+    setScreenReaderStatus()
+  }
+}
+
+/** Koniec konkursu trybu: zwolnienie lease konkursu i powrót do konfiguracji. */
+function returnToModeSetup(): void {
+  const lease = sessionLease
+  lease?.stopHeartbeat()
+  const finished = competition?.snapshot()
+  competition = null
+  modeRunning = false
+  const pending = failedCommit
+  if (pending) enqueueSave(pending)
+  saveChain = saveChain
+    .then(() => lease?.release())
+    .then(() => {
+      leaseChannel?.close()
+      leaseChannel = null
+    })
+    .then(() => loadSelectedHillPersistence())
+    .then(() => refreshModeResume())
+    .then(() => setScreenReaderStatus())
+    .catch(() => undefined)
+  const winner = finished?.teams?.rows[0]?.name
+    ?? finished?.koth?.rows.filter((row) => row.state === 'winner').map((row) => row.name).join(', ')
+  modeMessage = winner ? `KONKURS ZAKOŃCZONY • WYGRYWA: ${winner}` : 'KONKURS ZAKOŃCZONY'
+  modeError = false
+  screen = 'mode-setup'
+  modeFocus = 0
+  paused = false
+  tick = 0
+  input.reset()
+  lastInput = emptyTickInput()
+  const now = performance.now()
+  sessionClock.start(now)
+  fixedClock.reset(now)
+  setScreenReaderStatus()
+  canvas.focus()
+}
+
+function handleModeSetupKey(event: KeyboardEvent): void {
+  if (event.repeat && event.code !== 'ArrowUp' && event.code !== 'ArrowDown') return
+  const total = modeSettingIds().length + modeSlotCount()
+  const size = modeFormat === 'koth' ? 1 : TEAM_SIZE[modeFormat]
+  if (event.code === 'Backspace' || event.code === settings.menuBack) {
+    event.preventDefault()
+    screen = 'menu'
+    lifecycleMessage = 'MENU — WYBIERZ TRYB'
+  } else if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+    event.preventDefault()
+    modeFocus = (modeFocus + (event.code === 'ArrowDown' ? 1 : -1) + total) % total
+  } else if (event.code === 'PageUp' || event.code === 'PageDown') {
+    // Skok o całą drużynę (na pierwsze miejsce poprzedniej/następnej).
+    event.preventDefault()
+    const settingsCount = modeSettingIds().length
+    const slot = focusedSlot()
+    const teams = modeSlotCount() / size
+    if (teams === 0) return
+    const team = slot ? (slot.team + (event.code === 'PageDown' ? 1 : -1) + teams) % teams : event.code === 'PageDown' ? 0 : teams - 1
+    modeFocus = settingsCount + team * size
+  } else if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
+    event.preventDefault()
+    const direction = event.code === 'ArrowRight' ? 1 : -1
+    const slot = focusedSlot()
+    modeError = false
+    if (slot && modeFormat !== 'koth') {
+      modeLineups = { ...modeLineups, [modeFormat]: cycleLineupSlot(modeLineups[modeFormat], slot.team, slot.group, direction, modeProfiles()) }
+      modeMessage = ''
+    } else {
+      const setting = modeSettingIds()[modeFocus]
+      if (setting === 'profiles') changeModeProfiles(direction)
+      else if (setting === 'bots') {
+        modeBotCount = Math.max(Math.max(0, 2 - modeProfileCount), Math.min(10 - modeProfileCount, modeBotCount + direction))
+        modeMessage = ''
+      } else {
+        const order: AiDifficulty[] = ['easy', 'normal', 'hard']
+        modeDifficulty = order[(order.indexOf(modeDifficulty) + direction + order.length) % order.length] ?? 'normal'
+        modeMessage = ''
+      }
+    }
+  } else if (event.code === 'Enter' || event.code === settings.menuConfirm) {
+    event.preventDefault()
+    void startModeCompetition(modeResume)
+  } else if (event.code === 'KeyN') {
+    event.preventDefault()
+    void startModeCompetition(null)
+  } else {
+    return
+  }
+  setScreenReaderStatus()
+}
+
+function controllerLabel(profileId: string): string {
+  const index = LOCAL_PROFILES.findIndex((profile) => profile.id === profileId)
+  return `GRACZ ${index + 1}`
+}
+
+function modeSetupMessage(): string {
+  if (modeMessage) return modeMessage
+  const problems = modeProblems()
+  if (problems.length > 0) return `NIE MOŻNA ROZPOCZĄĆ — ${problems[0]!.toUpperCase()}`
+  return modeFormat === 'koth'
+    ? '↑/↓ WYBÓR • ←/→ ZMIEŃ • ENTER START • BACKSPACE MENU'
+    : '↑/↓ MIEJSCE • ←/→ BOT/GRACZ • PGUP/PGDN DRUŻYNA • ENTER START • BACKSPACE MENU'
+}
+
+function modeSettingRows(): SetupRow[] {
+  return modeSettingIds().map((id, index) => ({
+    label: id === 'profiles' ? `GRACZE: ${modeProfileCount}`
+      : id === 'bots' ? `BOTY: ${modeBotCount}`
+        : `AI: ${DIFFICULTY_NAMES[modeDifficulty]}`,
+    focused: modeFocus === index,
+    adjustable: true,
+  }))
+}
+
+function drawModeSetup(): void {
+  const problems = modeProblems()
+  const error = modeError || (!modeMessage && problems.length > 0)
+  const hillText = hillShortLabel(hill.spec.id)
+  if (modeFormat === 'koth') {
+    const entrants = modeProfileCount + modeBotCount >= 2 && modeProfileCount + modeBotCount <= 10
+      ? buildKothEntrants(modeProfiles(), modeBotCount, modeDifficulty)
+      : []
+    drawKothSetup(context, {
+      subtitle: `${hillText} • 2-10 UCZESTNIKÓW • NAJGORSZY ODPADA`,
+      settingRows: modeSettingRows(),
+      participants: entrants.map((entrant) => ({
+        number: entrant.startNumber,
+        name: entrant.name,
+        controller: entrant.controller.kind === 'human' ? controllerLabel(entrant.controller.profileId) : `BOT ${DIFFICULTY_NAMES[modeDifficulty]}`,
+        human: entrant.controller.kind === 'human',
+      })),
+      resumeLine: describeResume(modeResume),
+      message: modeSetupMessage(),
+      error,
+    })
+    return
+  }
+  const lineup = modeLineups[modeFormat]
+  const size = TEAM_SIZE[modeFormat]
+  const slot = focusedSlot()
+  const teamIndex = slot?.team ?? 0
+  const profiles = modeProfiles()
+  const controllers: string[] = []
+  lineup.slots.forEach((slots, team) => slots.forEach((entry, group) => {
+    if (entry.kind === 'human') controllers.push(`${controllerLabel(entry.profileId)} → ${TEAM_CODES[team]} ${GROUP_NAMES[group]}`)
+  }))
+  drawTeamSetup(context, {
+    title: MODE_TITLES[modeFormat],
+    subtitle: modeFormat === 'team'
+      ? `${hillText} • 4 W DRUŻYNIE • 2 SERIE • FINAŁ 8 DRUŻYN`
+      : `${hillText} • 2 W ZESPOLE • 3 SERIE • WSZYSCY → 12 → 8`,
+    settingRows: modeSettingRows(),
+    teams: lineup.slots.map((slots, team) => ({
+      code: TEAM_CODES[team]!,
+      humans: slots.filter((entry) => entry.kind === 'human').length,
+      focused: slot?.team === team,
+    })),
+    focusedTeam: {
+      code: TEAM_CODES[teamIndex]!,
+      slots: Array.from({ length: size }, (_, group) => {
+        const entry = lineup.slots[teamIndex]![group]!
+        return {
+          group: GROUP_NAMES[group]!,
+          controller: entry.kind === 'human' ? controllerLabel(entry.profileId) : 'BOT',
+          athlete: slotAthleteName(lineup, teamIndex, group, profiles),
+          human: entry.kind === 'human',
+          focused: slot?.team === teamIndex && slot.group === group,
+        }
+      }),
+    },
+    controllers: controllers.length > 0 ? controllers : ['BRAK GRACZA — WYBIERZ MIEJSCE ←/→'],
+    resumeLine: describeResume(modeResume),
+    message: modeSetupMessage(),
+    error,
+  })
+}
+
 function startFromGesture(): void {
   if (screen !== 'title') return
 
@@ -2043,6 +2426,10 @@ function onKeyDown(event: KeyboardEvent): void {
     handleBracketKey(event)
     return
   }
+  if (screen === 'mode-setup') {
+    handleModeSetupKey(event)
+    return
+  }
 
   if (screen === 'menu') {
     if (!persistenceReady && saveState !== 'failed') return
@@ -2075,6 +2462,7 @@ function onKeyDown(event: KeyboardEvent): void {
       else if (menuSelection === 'settings') openSettings()
       else if (menuSelection === 'cup') openSeasonHub('cup')
       else if (menuSelection === 'ko') openSeasonHub('four-hills')
+      else if (menuSelection === 'team' || menuSelection === 'superteam' || menuSelection === 'koth') openModeSetup(menuSelection)
       else if (!openLastReplay() && !latestReplay) {
         lifecycleMessage = 'BRAK ZAPISANEJ POWTÓRKI — ROZEGRAJ SKOK'
         setScreenReaderStatus()
@@ -2185,6 +2573,7 @@ function onKeyDown(event: KeyboardEvent): void {
       if (event.code === 'Enter' && !event.repeat) {
         event.preventDefault()
         if (seasonEvent) returnToSeasonHub()
+        else if (modeRunning) returnToModeSetup()
         else returnToMenu()
       }
       return
@@ -2359,6 +2748,12 @@ function drawFrame(): void {
     drawSettingsScreen(context, { settings, selectedRow, captureTarget, message: settingsMessage })
     return
   }
+  if (screen === 'mode-setup') {
+    drawModeSetup()
+    drawSaveBanner()
+    if (paused) drawPauseBanner()
+    return
+  }
   if (screen === 'season' || screen === 'calendar-editor' || (screen === 'ko-bracket' && bracketScreen)) {
     if (screen === 'season') drawSeasonHub(context, seasonHubView())
     else if (screen === 'calendar-editor') drawCalendarEditor(context, calendarEditorView())
@@ -2416,7 +2811,7 @@ function drawFrame(): void {
       hillLabel: hillLabel(),
       resumeAvailable: resume !== null,
       resumeLabel: resume
-        ? `${ROUND_LABEL[resume.competition.rounds[resume.competition.currentRoundIndex]?.id ?? 'qualification']} • SKOK ${resume.competition.nextStartIndex + 1}`
+        ? `${roundLabel(resume.competition.rounds[resume.competition.currentRoundIndex]?.id ?? 'qualification')} • SKOK ${resume.competition.nextStartIndex + 1}`
         : savedRejectedReason
           ? savedRejectedReason.startsWith('STARY ZAPIS PLANICY') ? 'PLANICA: ZAPIS ZE STAREGO PROFILU'
             : savedRejectedReason === 'INNA SKOCZNIA LUB WERSJA' ? 'ODRZUCONO: INNA SKOCZNIA' : 'ODRZUCONO: FORMAT ZAPISU'
@@ -2468,6 +2863,30 @@ function drawFrame(): void {
         scroll: snapshot.roundSummaryScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: '↑/↓ PRZEWIŃ PARY • ENTER — DALEJ',
+      })
+    } else if ((competition.view === 'round-summary' || competition.view === 'finished') && snapshot.teams) {
+      const finished = competition.view === 'finished'
+      const completed = snapshot.lastCompletedRound ? roundLabel(snapshot.lastCompletedRound) : snapshot.roundLabel
+      drawTeamTable(context, {
+        table: snapshot.teams,
+        title: finished ? `${snapshot.variantLabel ?? 'DRUŻYNY'} — WYNIK KOŃCOWY` : `${completed} — ZAKOŃCZONA`,
+        subtitle: finished
+          ? 'SUMA WSZYSTKICH ZALICZONYCH SKOKÓW • FINALIŚCI PRZED POZOSTAŁYMI'
+          : snapshot.teams.advanceLimit
+            ? `AWANS ${snapshot.teams.advanceLimit} DRUŻYN • REMIS NA GRANICY: AWANSUJĄ WSZYSCY • DALEJ: ${snapshot.roundLabel}`
+            : `DALEJ: ${snapshot.roundLabel} • GRUPY WG ODWRÓCONEJ KLASYFIKACJI`,
+        // Wynik końcowy od zwycięzcy (bez przewijania); skład gracza jest w dolnym panelu.
+        scroll: finished ? 0 : snapshot.roundSummaryScroll,
+        visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
+        footer: finished ? 'ENTER — KONFIGURACJA TRYBU' : '↑/↓ PRZEWIŃ • ENTER — DALEJ',
+      })
+    } else if ((competition.view === 'round-summary' || competition.view === 'finished') && snapshot.koth) {
+      const finished = competition.view === 'finished'
+      drawKothBoard(context, {
+        koth: snapshot.koth,
+        title: finished ? 'KING OF THE HILL — WYNIK' : `KING OF THE HILL — ${snapshot.koth.roundLabel}`,
+        subtitle: finished ? 'TRYB ROZRYWKOWY • MIEJSCA WG KOLEJNOŚCI ODPADANIA' : `TRYB ROZRYWKOWY • DALEJ: ${snapshot.roundLabel}`,
+        footer: finished ? 'ENTER — KONFIGURACJA TRYBU' : 'ENTER — DALEJ',
       })
     } else if (competition.view === 'round-summary') {
       drawRoundSummary(context, snapshot, settings.largeText)
@@ -2566,24 +2985,32 @@ function drawMenu(): void {
 
   context.textAlign = 'left'
   context.fillStyle = '#14233b'
-  context.fillRect(32, 52, 175, 126)
+  context.fillRect(32, 52, 175, 134)
   context.strokeStyle = '#536c7a'
-  context.strokeRect(32, 52, 175, 126)
+  context.strokeRect(32, 52, 175, 134)
   label('MENU GŁÓWNE', 44, 66, '#f3ead1', 11)
-  drawMenuRow(`${menuSelection === 'training' ? '>' : ' '} TRENING`, 44, 80, menuSelection === 'training')
-  drawMenuRow(`${menuSelection === 'competition' ? '>' : ' '} KONKURS STANDARDOWY`, 44, 92, menuSelection === 'competition')
   const replayMenuLabel = !latestReplay
     ? 'POWTÓRKA: BRAK'
     : latestReplayCanOpen()
       ? 'OSTATNIA POWTÓRKA'
       : 'POWTÓRKA NIEDOSTĘPNA'
-  drawMenuRow(`${menuSelection === 'replay' ? '>' : ' '} ${replayMenuLabel}`, 44, 104, menuSelection === 'replay')
-  drawMenuRow(`${menuSelection === 'settings' ? '>' : ' '} USTAWIENIA`, 44, 116, menuSelection === 'settings')
-  drawMenuRow(`${menuSelection === 'cup' ? '>' : ' '} PUCHAR SEZONU`, 44, 128, menuSelection === 'cup')
-  drawMenuRow(`${menuSelection === 'ko' ? '>' : ' '} TURNIEJ KO (TEST)`, 44, 140, menuSelection === 'ko')
-  drawMenuRow(menuTrainingGateText(), 44, 158, false)
-  drawMenuRow('  [ / ] BELKA NA ZIELONYM', 44, 172, false)
-  if (hill.spec.id === 'h04-planica-flying') drawPlanicaThumbnail(context, 32, 182)
+  const menuLabels: Readonly<Record<MenuSelection, string>> = {
+    training: 'TRENING',
+    competition: 'KONKURS STANDARDOWY',
+    replay: replayMenuLabel,
+    settings: 'USTAWIENIA',
+    cup: 'PUCHAR SEZONU',
+    ko: 'TURNIEJ KO (TEST)',
+    team: 'KONKURS DRUŻYNOWY',
+    superteam: 'SUPER TEAM',
+    koth: 'KING OF THE HILL',
+  }
+  MENU_ORDER.forEach((entry, index) => {
+    drawMenuRow(`${menuSelection === entry ? '>' : ' '} ${menuLabels[entry]}`, 44, 78 + index * 10, menuSelection === entry)
+  })
+  drawMenuRow(menuTrainingGateText(), 44, 171, false)
+  drawMenuRow('  [ / ] BELKA NA ZIELONYM', 44, 181, false)
+  if (hill.spec.id === 'h04-planica-flying') drawPlanicaThumbnail(context, 32, 190)
 
   context.fillStyle = '#0c1827'
   context.fillRect(220, 52, 228, 159)
@@ -2620,7 +3047,7 @@ function drawMenu(): void {
 }
 
 function drawMenuRow(text: string, x: number, y: number, active: boolean): void {
-  label(text, x, y, active ? '#f1bd79' : '#91b4cb', y >= 150 ? 8 : 9)
+  label(text, x, y, active ? '#f1bd79' : '#91b4cb', 8)
 }
 
 function drawBorder(x: number, y: number, width: number, height: number, outer: string, inner: string): void {
@@ -2800,6 +3227,21 @@ window.__retroDebugSnapshot = () => ({
       bracket: bracketScreen ? { pairs: bracketScreen.bracket.pairs.length, resolved: bracketScreen.bracket.resolved, scroll: bracketScroll } : null,
     }
   })(),
+  mode: {
+    format: modeFormat,
+    focus: (() => {
+      const slot = focusedSlot()
+      return slot ? `${TEAM_CODES[slot.team]}-${slot.group + 1}` : modeSettingIds()[modeFocus] ?? ''
+    })(),
+    profileCount: modeProfileCount,
+    botCount: modeBotCount,
+    difficulty: modeDifficulty,
+    humanSlots: modeFormat === 'koth' ? [] : modeLineups[modeFormat].slots.flatMap((slots, team) =>
+      slots.flatMap((entry, group) => (entry.kind === 'human' ? [`${TEAM_CODES[team]}-${group + 1}:${entry.profileId}`] : []))),
+    message: modeSetupMessage(),
+    resumable: modeResume !== null,
+    running: modeRunning,
+  },
 })
 
 if (debugEnabled) {
