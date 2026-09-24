@@ -1,7 +1,7 @@
 # PKG-014 / P23–P25 — raport: puchar sezonu, własny kalendarz i silnik KO
 
-**Status: COMPLETE (24.09.2026) — zakres techniczny P23, P24, P25 wykonany; jedno końcowe review zamknięte.**
-**VISUAL wydaje wyłącznie użytkownik — nie wpisano; zrzuty ekranów czekają na werdykt.** Zewnętrzny PLAYABILITY NOT RUN.
+**Status: COMPLETE (24.09.2026) — zakres P23, P24, P25 wykonany; jedno końcowe review zamknięte.**
+**VISUAL USER PASS 24.09.2026** — użytkownik: „Akceptuję wygląd ekranów, zamknij PKG-014” (ekrany hubu pucharu/turnieju, edytora kalendarza i drabinki KO ze zrzutów `screens/`). Zewnętrzny PLAYABILITY NOT RUN.
 
 Pierwszy pakiet prowadzony bezpośrednio w repozytorium GitHub `thisisdiwad/rsj222` (gałąź robocza + PR),
 zgodnie z nowym poleceniem użytkownika; zakaz Git z 23.09.2026 i ścieżki `C:\retro-ski-jumping` są nieaktualne.
@@ -49,7 +49,7 @@ zgodnie z nowym poleceniem użytkownika; zakaz Git z 23.09.2026 i ścieżki `C:\
   `settings.spec.ts` 4/4 PASS; testy `h01/h02/h03.spec.ts` z tym samym fixture (3 testy) PASS.
 - Katalogi `tmp-*` sprawdzono przed uruchomieniem (nie istniały); zrzuty przeniesiono do `screens/`, katalogi tymczasowe usunięto.
 
-## Zrzuty do odbioru VISUAL (użytkownik)
+## Zrzuty odebrane przez użytkownika (VISUAL USER PASS 24.09.2026)
 
 `screens/`: `menu-1280x720.png`, `cup-hub-new.png`, `cup-hub-after-event-1.png`, `cup-event-finished.png`,
 `calendar-editor.png`, `cup-hub-set-repeated.png` (wspólne 4. miejsce przy remisie, 6. pominięte), `ko-hub-new.png`,
@@ -66,7 +66,7 @@ Sprawdzono ponownie zmienione ścieżki (typecheck, unit, build, `season.spec`, 
 
 ## Ograniczenia i jawne decyzje
 
-- **VISUAL nowych ekranów: brak werdyktu użytkownika.** PLAYABILITY NOT RUN.
+- VISUAL nowych ekranów: USER PASS 24.09.2026 („Akceptuję wygląd ekranów, zamknij PKG-014”). PLAYABILITY NOT RUN.
 - Kolejność startu w konkursach sezonu pozostaje stała (lista 75), bez odwrotnej kolejności pucharu — poza zakresem P23.
 - Cztery obiekty testowe to H01–H04 (także w KO); docelowe H03/H05/H06/H07 dopiero po P32.
 - Rekordy/statystyki zestawu ograniczają się do licznika ukończonych sezonów danego klucza; pełne rekordy zestawu to P29.

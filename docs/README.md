@@ -2,7 +2,7 @@
 
 Data researchu: **2026-09-21**. Język produktu i dokumentacji: polski.
 **Stan 24.09.2026: PKG-001–014 COMPLETE; P21–P25 COMPLETE (H01–H04 z odbiorem
-użytkownika; ustawienia P22 oraz ekrany sezonu/kalendarza/KO P23–P25 bez odbioru VISUAL);
+użytkownika; ustawienia P22 bez odbioru VISUAL; ekrany sezonu/kalendarza/KO P23–P25 VISUAL USER PASS);
 następny PKG-015/P26–P28.** Grywalne są techniczna K120/HS134,
 [Lillehammer inspirowana K90/HS98](hills/H01.md),
 [Zakopane inspirowane K125/HS140](hills/H02.md) i
@@ -32,8 +32,8 @@ są historią etapu lokalnego. Historyczna utrata dowodów PKG-010 jest zaakcept
 H04 użytkownik zaakceptował 24.09.2026 („resztę akceptuje”) po dwóch
 wskazanych poprawkach (ciemniejsza banda rozbiegu, belka AUTO niżej o 2),
 które wykonano. PKG-014 dodał puchar sezonu, własny kalendarz z kluczem zestawu
-i silnik KO wg F03 §4.3.2 ([raport](evidence/PKG-014/REPORT.md), zrzuty czekają na
-werdykt VISUAL). [Aktywny handoff — PKG-015/P26–P28](NEXT_SESSION_PROMPT.md):
+i silnik KO wg F03 §4.3.2 ([raport](evidence/PKG-014/REPORT.md)); użytkownik zaakceptował wygląd ekranów
+24.09.2026 („Akceptuję wygląd ekranów, zamknij PKG-014”). [Aktywny handoff — PKG-015/P26–P28](NEXT_SESSION_PROMPT.md):
 drużyny, Super Team i King of the Hill.
 
 ## Jak czytać

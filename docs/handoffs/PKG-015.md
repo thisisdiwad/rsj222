@@ -45,9 +45,9 @@ Nie zaczynaj P29+, H05–H20 ani nowych skoczni.
   **DB v3**: sessions, results, records, replays, leases, settings, **seasons, calendars**.
   Konkurs sezonu = zwykła `CompetitionSession` z własnym `sessionId`/seed; wynik konkursu
   trafia do sezonu w tej samej transakcji co ostatni skok (`CommitRequest.season`).
-- **VISUAL ekranów PKG-014 czeka na werdykt użytkownika** (zrzuty:
-  `docs/evidence/PKG-014/screens/`). Jeśli użytkownik zgłosi uwagi, najpierw je popraw
-  (to kontynuacja PKG-014, osobny wpis w raporcie), potem wracaj do PKG-015.
+- Ekrany PKG-014 (hub pucharu/turnieju, edytor kalendarza, drabinka KO) mają
+  **VISUAL USER PASS 24.09.2026** („Akceptuję wygląd ekranów, zamknij PKG-014”); zrzuty w `docs/evidence/PKG-014/screens/`
+  są wzorcem stylu dla nowych ekranów drużyn i King of the Hill.
 - Ostatnia bramka: `npm run typecheck` PASS, `npm test` 41 plików/355 PASS, `npm run build` PASS,
   Playwright `season.spec.ts` 3/3 i `shell.spec.ts` 5/5 PASS. Dowody: `docs/evidence/PKG-014/REPORT.md`.
   Zewnętrzny PLAYABILITY NOT RUN.
