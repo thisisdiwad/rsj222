@@ -11,7 +11,7 @@ npm run dev       # serwer deweloperski Vite
 npm run typecheck
 npm test          # testy jednostkowe (Vitest)
 npm run build
-npx playwright test tests/browser/shell.spec.ts tests/browser/season.spec.ts
+npx playwright test tests/browser/shell.spec.ts tests/browser/season.spec.ts tests/browser/modes.spec.ts
 ```
 
 Jeśli Playwright nie ma pobranej przeglądarki, wskaż istniejący Chromium:

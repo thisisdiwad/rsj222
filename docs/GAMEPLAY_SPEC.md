@@ -144,6 +144,13 @@ Remis w konkursie daje punkty przypisane wspólnemu miejscu; kolejne miejsca są
 
 Domyślna drużyna hotseat może zawierać ludzi i boty; ten model obsady jest adaptacją lokalnej gry. W Super Team można sterować oboma skoczkami jednego zespołu. W konfiguracji wymagana czytelna lista, kto steruje każdym miejscem.
 
+Drużyny, Super Team i King of the Hill (zaimplementowane w PKG-015; F03 §2.2.2, §3.2.3, §3.2.4, ICR 453, 433.4):
+- **Drużynowy:** 12 drużyn × 4 (grupy I–IV, ICR 453.4); seria idzie grupami, w grupie drużyny w stałej kolejności konfiguracji (ADAPT zamiast rankingu narodów F03 §3.2.3). Po I serii awansuje 8 drużyn; przed **każdą** grupą finału kolejność to odwrócona bieżąca klasyfikacja (F03 §3.2.3.1), remis — zachowana poprzednia kolejność (ADAPT). Wynik to suma wszystkich skoków; DNS/NPS/DSQ/rezygnacja dają 0 za ten skok, drużyna startuje dalej.
+- **Super Team:** 16 zespołów × 2, trzy serie, wszyscy → 12 → 8; II seria grupami w kolejności I serii (F03 nie określa kolejności drużyn — ADAPT), finał jak wyżej: każda grupa w odwrotnej bieżącej klasyfikacji. Odwołana II seria lub finał kończy konkurs wynikiem ukończonych serii.
+- **Remis na granicy awansu (rozstrzygnięty źródłowo):** ICR 433.4 — równa nota to to samo miejsce, a F03 §3.2.3.1 dopuszcza do finału „leading eight” (analogicznie „best twelve”): drużyny ze wspólnym 8./12. miejscem awansują wszystkie. Tabela: najpierw drużyny, które doszły dalej, potem suma; remis → wspólne miejsce.
+- **Obsada:** każde miejsce to bot albo profil hotseat; profil może zająć tylko jedno miejsce (bez duplikatów zawodnika), start wymaga co najmniej jednego gracza. Oba miejsca zespołu Super Team mogą być ludzkie (np. dwa profile jednej osoby).
+- **King of the Hill (ADAPT, rozrywkowy):** 2–10 uczestników, gracze przed botami. W rundzie skaczą wszyscy pozostali, najgorsza nota odpada; status administracyjny jest gorszy od każdej noty. Remis ostatnich → jedna dogrywka tych osób; ponowny remis ostatnich w dogrywce eliminuje całą grupę; remis wszystkich pozostałych → wspólne zwycięstwo. Rezygnacja (Q) to wyjście z gry — odpada od razu, zamiast eliminacji najsłabszego w tej rundzie. Gdy w grze nie ma już człowieka, boty dokańczają bez zatrzymań na planszach. Kolejna runda: najsłabsi z poprzedniej rundy eliminacyjnej skaczą pierwsi. Liczba rund ≤ 2·(n−1).
+
 ## 7. Procedura startu i jury
 
 Tryb trójfazowy: czerwone — przygotowanie; żółte — oczekiwanie/pozycja; zielone — 10 s na start. F02 §415.4.1. Prawdziwe oczekiwanie w żółtej fazie może być długie; gra pozwala pominąć animację czekania w czasie, gdy sterowanie skokiem jest nieaktywne. Nie skraca 10 s zielonego ani nie zmienia pola wiatru przez FPS. Przy braku zgody startowej zawodnik wraca do przygotowania.

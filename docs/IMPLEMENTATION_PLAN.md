@@ -1,6 +1,6 @@
 # Kompletny plan wykonania gry
 
-Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; P26–P40 i P43 NOT STARTED (następny PKG-015/P26–P28)**. **Od 24.09.2026 (D20) pełne v1 obejmuje wszystkie skocznie PŚ z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [CONTENT_PLAN](CONTENT_PLAN.md), zamykana przez P43.** H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
+Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; PKG-015/P26–P28 COMPLETE (VISUAL ekranów czeka na użytkownika); P29–P40 i P43 NOT STARTED (następny PKG-016/P29–P31)**. **Od 24.09.2026 (D20) pełne v1 obejmuje wszystkie skocznie PŚ z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [CONTENT_PLAN](CONTENT_PLAN.md), zamykana przez P43.** H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
 
 Źródła wymagań: [GDD](PRODUCT_GDD.md), [mechanika](GAMEPLAY_SPEC.md), [oprawa](ART_UI_AUDIO.md), [technika](TECHNICAL_DESIGN.md), [zawartość](CONTENT_PLAN.md), [QA](QA_ACCEPTANCE.md). Reguły sportowe nie są odtwarzane z pamięci ani z instrukcji SJ3.
 
@@ -309,24 +309,24 @@ Gra 4 skoczni, standardowy konkurs, trening, AI, hotseat, pełna punktacja, zapi
 
 **Zależności:** P16, P18, P19. **Pliki:** team schema, team reducer, lineup screen, team scoreboard, testy.
 
-- [ ] Obsada 4 miejsc, dwie serie i finał 8; kolejność każdej grupy finałowej według aktualnego wyniku.
-- [ ] Mieszana obsada ludzie/boty ma jawne sterowanie; walidacja braku duplikatów.
+- [x] Obsada 4 miejsc, dwie serie i finał 8; kolejność każdej grupy finałowej według aktualnego wyniku (PKG-015).
+- [x] Mieszana obsada ludzie/boty ma jawne sterowanie; walidacja braku duplikatów. Remis graniczny: wspólne miejsce awansuje (ICR 433.4 + F03 §3.2.3.1).
 - **Weryfikacja:** Q-FIS-12; źródłowo rozstrzygnąć graniczny remis drużyn przed finalizacją fixture'a.
 
 ### P27 — Super Team [M]
 
 **Zależności:** P26. **Pliki:** superteam format, advancement, screen variant, testy.
 
-- [ ] 2 zawodników na zespół, trzy serie, awans 12→8; suma wszystkich zaliczonych skoków.
-- [ ] Wyniki i kolejność grup finału odświeżane poprawnie.
+- [x] 2 zawodników na zespół, trzy serie, awans 12→8; suma wszystkich zaliczonych skoków (PKG-015).
+- [x] Wyniki i kolejność grup finału odświeżane poprawnie; wznowienie między grupami i seriami.
 - **Weryfikacja:** pełny konkurs 16 zespołów, eliminacje i wznawianie między grupami.
 
 ### P28 — King of the Hill [M]
 
 **Zależności:** P16, P18. **Pliki:** koth reducer, challenge data, elimination screen, testy.
 
-- [ ] Najgorszy odpada, turniej kończy się zwycięzcą; tryb jawnie rozrywkowy.
-- [ ] Remis ostatnich uruchamia jedną dogrywkę tych osób; kolejny remis eliminuje grupę, a remis wszystkich pozostałych daje wspólne zwycięstwo (ADAPT).
+- [x] Najgorszy odpada, turniej kończy się zwycięzcą; tryb jawnie rozrywkowy (PKG-015).
+- [x] Remis ostatnich uruchamia jedną dogrywkę tych osób; kolejny remis eliminuje grupę, a remis wszystkich pozostałych daje wspólne zwycięstwo (ADAPT).
 - **Weryfikacja:**2,3,10 uczestników, remis wszystkich, wyjście ostatniego człowieka, brak nieskończonej pętli.
 
 ### P29 — Rekordy i statystyki [M]
