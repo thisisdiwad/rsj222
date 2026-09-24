@@ -99,7 +99,7 @@ Automatyzacja używa prawdziwych zdarzeń klawiatury do przejść i skoku. Debug
 
 Testy: uszkodzonyJSON, nieznana wersja, zbyt duży import, brak miejsca, przerwany zapis, migracja, eksport→import, rekord starej fizyki, zduplikowany resultId. Przy błędzie stare dane pozostają nienaruszone.
 
-Benchmark nagrywa 60 s sceny z docelowym art i aktywnym wiatrem/śniegiem, serię szybkich botów oraz powtórne przejścia 20 skoczni. Zapisuje czasy klatek, użycie pamięci, długie zadania i urządzenie. Budżet p95/p99 ustala P15 na realnym sprzęcie; nie wpisywać PASS dla arbitralnego celu na nieznanej maszynie.
+Benchmark nagrywa 60 s sceny z docelowym art i aktywnym wiatrem/śniegiem, serię szybkich botów oraz powtórne przejścia wszystkich skoczni listy. Zapisuje czasy klatek, użycie pamięci, długie zadania i urządzenie. Budżet p95/p99 ustala P15 na realnym sprzęcie; nie wpisywać PASS dla arbitralnego celu na nieznanej maszynie.
 
 Dystrybucja: build pod `/` i podkatalogiem; brak 404 i wycieków debug; cache A→B; tryb offline po udanym pobraniu. Przy pierwszej wizycie całkowicie offline bez service workera/cache dopuszczalny jest błąd sieci samej przeglądarki. Gdy shell działa, lecz nie udało się pobrać assetów, gra pokazuje własny błąd i ponowienie. Build zawiera wyłącznie potrzebne assety, bez skilli, obrazów researchu, lokalnych zapisów i sekretów.
 

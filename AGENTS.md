@@ -40,7 +40,7 @@ To bezpośrednie polecenie użytkownika z 16 września 2026 i ma pierwszeństwo 
 pakietów oraz wcześniejszymi promptami. **Dopóki użytkownik nie zaakceptuje wyglądu,
 animacji, sterowania i odczucia fizyki, nie powstaje żadna nowa zawartość.**
 
-1. **Zamrożenie zawartości.** Zakaz dodawania nowych skoczni (H01–H20), trybów, sezonu,
+1. **Zamrożenie zawartości.** Zakaz dodawania nowych skoczni (H01–H32), trybów, sezonu,
    KO, drużyn i kolejnych ekranów, dopóki bramka V nie zostanie zaliczona akceptacją
    użytkownika. Dotyczy to także „przy okazji” i „to tylko dane”.
 2. **Poziom odniesienia jest zewnętrzny i podzielony.** Obie gry są równorzędną inspiracją,
@@ -72,7 +72,7 @@ animacji, sterowania i odczucia fizyki, nie powstaje żadna nowa zawartość.**
 
 ## Twarda zasada: grywalne skocznie inspirowane realnymi (23.09.2026)
 
-To nowsze bezpośrednie polecenie użytkownika zastępuje dla H01–H20 dawną
+To nowsze bezpośrednie polecenie użytkownika zastępuje dla wszystkich skoczni (H01–H32) dawną
 bramkę ścisłej, empirycznej rekonstrukcji z 19.09.2026. Poprzedni research
 i raporty pozostają archiwalnym dowodem; nie blokują adaptacji grywalnej.
 
@@ -101,6 +101,10 @@ i raporty pozostają archiwalnym dowodem; nie blokują adaptacji grywalnej.
    istnieje powtarzalna, trudna ścieżka wejścia bez podpórki. To warunek
    testowany na każdym obiekcie, nie gwarancja ustania każdego skoku ani
    losowanie wyniku. Telemark nie jest wymagany do pobicia rekordu.
+
+## Twarda zasada: wszystkie skocznie PŚ z trzech ostatnich sezonów (24.09.2026)
+
+Bezpośrednie polecenie użytkownika: gra ma zawierać **nie 3–4, lecz wszystkie skocznie, na których rozegrano zawody Pucharu Świata w skokach narciarskich w trzech ostatnich sezonach zimowych** (obecnie 2023/24, 2024/25, 2025/26; mężczyźni i kobiety, skoki i loty). Robocza lista H01–H32 jest w `docs/CONTENT_PLAN.md` §1; P43 zamyka ją na podstawie źródeł FIS przed pierwszą nową kartą. **Tworzenie każdej skoczni przebiega na tych samych zasadach co H01–H04:** jeden obiekt na pakiet, pełny cykl D/G/A/V, zasada skoczni inspirowanych powyżej (K/HS zgodne, ADAPT/TUNE, odrębna oprawa, rekord + 2 m na dwie nogi, determinizm) i werdykt VISUAL wyłącznie od użytkownika.
 
 ## Obowiązkowe przekazanie po każdym pakiecie
 

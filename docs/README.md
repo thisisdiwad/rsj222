@@ -35,6 +35,9 @@ które wykonano. PKG-014 dodał puchar sezonu, własny kalendarz z kluczem zesta
 i silnik KO wg F03 §4.3.2 ([raport](evidence/PKG-014/REPORT.md)); użytkownik zaakceptował wygląd ekranów
 24.09.2026 („Akceptuję wygląd ekranów, zamknij PKG-014”). [Aktywny handoff — PKG-015/P26–P28](NEXT_SESSION_PROMPT.md):
 drużyny, Super Team i King of the Hill.
+**Rozszerzenie planu 24.09.2026 (D20):** pełne v1 obejmuje wszystkie skocznie PŚ
+z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [planie zawartości](CONTENT_PLAN.md),
+zamykana źródłowo przez P43 (PKG-017); każda powstaje tak jak H01–H04.
 
 ## Jak czytać
 

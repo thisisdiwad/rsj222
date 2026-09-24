@@ -127,7 +127,7 @@ Oprócz wektorów syntetycznych P13 odtwarza co najmniej pięć pełnych wierszy
 | Trening | 1 aktywny profil, dowolne powtórzenia, ustawienia warunków | Statystyki treningowe, brak rekordu konkursowego |
 | Konkurs standardowy | Pula 75, kwalifikacje do 50; mamut do 40; następnie finał 30 | Suma dwóch konkursowych skoków |
 | Szybki lokalny | 1–10 ludzi, opcjonalne AI; dwie serie bez kwalifikacji | Wariant rozrywkowy, osobny znacznik formatu |
-| Puchar sezonowy | 20 konkursów; dostępny zapis pomiędzy próbami | Punkty pucharowe, nie suma metrów |
+| Puchar sezonowy | Po jednym konkursie na każdej skoczni listy PŚ (H01–H32 po P43); dostępny zapis pomiędzy próbami | Punkty pucharowe, nie suma metrów |
 | Własny kalendarz | 1–40 konkursów z biblioteki; można powtarzać obiekt | Oddzielna tabela konkretnego zestawu |
 | Cztery skocznie | Cztery konkursy KO; 50→25 zwycięzców+5 przegranych | Suma punktów skoków czterech konkursów |
 | Drużynowy | Czterech zawodników, dwie serie; finał najlepszych 8 ekip | Suma skoków; kolejność grup finału aktualizowana |

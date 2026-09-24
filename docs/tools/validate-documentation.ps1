@@ -49,7 +49,7 @@ foreach ($sjTask in $sjTasks) {
     })
     $sjDeps[$sjTaskId] = @([regex]::Matches($sjExpanded, '\bP\d{2}\b') | ForEach-Object { $_.Value } | Select-Object -Unique)
 }
-foreach ($sjN in 1..42) {
+foreach ($sjN in 1..43) {
     $sjExpected = 'P{0:D2}' -f $sjN
     if (-not $sjDeps.ContainsKey($sjExpected)) { $sjErrors.Add("Missing task: $sjExpected") }
 }
@@ -97,9 +97,9 @@ foreach ($sjRow in $sjRows) {
         }
     }
 }
-$sjExpectedSelectors = @((1..42 | Where-Object { $_ -notin @(21, 32) } | ForEach-Object { 'P{0:D2}' -f $_ })) +
+$sjExpectedSelectors = @((1..43 | Where-Object { $_ -notin @(21, 32) } | ForEach-Object { 'P{0:D2}' -f $_ })) +
     @(1..4 | ForEach-Object { 'P21-H{0:D2}' -f $_ }) +
-    @(5..20 | ForEach-Object { 'P32-H{0:D2}' -f $_ })
+    @(5..32 | ForEach-Object { 'P32-H{0:D2}' -f $_ })
 foreach ($sjSelector in $sjExpectedSelectors) {
     if (-not $sjSelectors.ContainsKey($sjSelector)) { $sjErrors.Add("Unassigned scope: $sjSelector") }
 }
@@ -115,14 +115,14 @@ foreach ($sjSelector in $sjSelectors.Keys) {
         }
     }
 }
-foreach ($sjN in 1..35) {
+foreach ($sjN in 1..48) {
     if (-not $sjPackages.ContainsKey(('PKG-{0:D3}' -f $sjN))) { $sjErrors.Add("Missing package number: $sjN") }
 }
-if ($sjRows.Count -ne 35) { $sjErrors.Add('Expected exactly 35 package rows.') }
+if ($sjRows.Count -ne 48) { $sjErrors.Add('Expected exactly 48 package rows.') }
 
 $sjHills = [regex]::Matches((Get-Content -LiteralPath (Join-Path $sjRoot 'docs/CONTENT_PLAN.md') -Raw), '(?m)^\| (H\d{2}) \|')
-if ($sjHills.Count -ne 20 -or @($sjHills | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique).Count -ne 20) {
-    $sjErrors.Add('Expected twenty distinct hill IDs.')
+if ($sjHills.Count -ne 32 -or @($sjHills | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique).Count -ne 32) {
+    $sjErrors.Add('Expected thirty-two distinct hill IDs (update with the P43 list).')
 }
 $sjManifest = Get-Content -LiteralPath (Join-Path $sjRoot 'docs/research/reference-images/README.md') -Raw
 foreach ($sjGif in Get-ChildItem -LiteralPath (Join-Path $sjRoot 'docs/research/reference-images') -Filter '*.gif' -File) {
@@ -168,7 +168,7 @@ if ($CheckActiveHandoff) {
     markdownFiles = $sjDocs.Count
     localLinksChecked = $sjLinkCount
     tasks = $sjTasks.Count
-    acyclicTaskGraph = ($sjResolved.Count -eq 42)
+    acyclicTaskGraph = ($sjResolved.Count -eq 43)
     packages = $sjRows.Count
     assignedScopeUnits = $sjSelectors.Count
     hills = $sjHills.Count

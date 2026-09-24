@@ -1,6 +1,6 @@
 # Pakiety sesyjne i obowiązkowe przekazanie
 
-Zasada użytkownika: **po każdym wykonanym pakiecie powstaje prompt nowej sesji wykonującej kolejny pakiet**. Dotyczy wszystkich etapów, nie tylko końca projektu. Stan bieżący: PKG-001–012 COMPLETE; P21 COMPLETE (H04 VISUAL USER PASS 24.09.2026 po dwóch wskazanych poprawkach); PKG-013/P22 COMPLETE 24.09.2026; **PKG-014/P23–P25 COMPLETE 24.09.2026** ([raport](evidence/PKG-014/REPORT.md), VISUAL USER PASS ekranów 24.09.2026); **następny PKG-015/P26–P28**, NOT STARTED. Bazowa bramka V oprawy zaliczona akceptacją użytkownika 22.09.2026; H01, H02 i H03 VISUAL USER PASS 23.09.2026 (H03: „skocznia obersdorff jest ok”; bez twierdzenia, że użytkownik obejrzał cały film). Zewnętrzny playtest PLAYABILITY NOT RUN. Stan i dowody H04: [raport PKG-012](evidence/PKG-012/REPORT.md). Incydent sześciu nadpisanych artefaktów PKG-010 zamknięto akceptacją udokumentowanej utraty przez użytkownika („dobra, trudno”): historyczny manifest bez zmian, obecne pliki nie są oryginałami, bez nowej bazy. Dla H01–H20 obowiązuje nowsza zasada skoczni inspirowanych z poprawnymi K/HS, zróżnicowaną oprawą, balansem ADAPT/TUNE i możliwością czystego lądowania na dwie nogi 2 m za rekordem — patrz [AGENTS.md](../AGENTS.md).
+Zasada użytkownika: **po każdym wykonanym pakiecie powstaje prompt nowej sesji wykonującej kolejny pakiet**. Dotyczy wszystkich etapów, nie tylko końca projektu. Stan bieżący: PKG-001–012 COMPLETE; P21 COMPLETE (H04 VISUAL USER PASS 24.09.2026 po dwóch wskazanych poprawkach); PKG-013/P22 COMPLETE 24.09.2026; **PKG-014/P23–P25 COMPLETE 24.09.2026** ([raport](evidence/PKG-014/REPORT.md), VISUAL USER PASS ekranów 24.09.2026); **następny PKG-015/P26–P28**, NOT STARTED. **24.09.2026 plan rozszerzono (D20):** pełne v1 obejmuje wszystkie skocznie PŚ z sezonów 2023/24–2025/26 — PKG-017/P43 weryfikuje listę, PKG-018–045 tworzą H05–H32 po jednym obiekcie na pakiet, na tych samych zasadach co H01–H04; dawne PKG-033–035 mają teraz numery 046–048. Bazowa bramka V oprawy zaliczona akceptacją użytkownika 22.09.2026; H01, H02 i H03 VISUAL USER PASS 23.09.2026 (H03: „skocznia obersdorff jest ok”; bez twierdzenia, że użytkownik obejrzał cały film). Zewnętrzny playtest PLAYABILITY NOT RUN. Stan i dowody H04: [raport PKG-012](evidence/PKG-012/REPORT.md). Incydent sześciu nadpisanych artefaktów PKG-010 zamknięto akceptacją udokumentowanej utraty przez użytkownika („dobra, trudno”): historyczny manifest bez zmian, obecne pliki nie są oryginałami, bez nowej bazy. Dla H01–H20 obowiązuje nowsza zasada skoczni inspirowanych z poprawnymi K/HS, zróżnicowaną oprawą, balansem ADAPT/TUNE i możliwością czystego lądowania na dwie nogi 2 m za rekordem — patrz [AGENTS.md](../AGENTS.md).
 
 Obowiązuje nadrzędna [zasada prostoty z AGENTS.md](../AGENTS.md): najprostsze rozwiązanie dające dobry efekt, praca w aktywnym zakresie i **jedno review dopiero po całym pakiecie**. Ta mapa służy wykonaniu gry, nie rozbudowywaniu procesu zarządzania. Nie dodawaj kolejnych bramek, komisji ani sesji audytowych.
 
@@ -8,12 +8,12 @@ Obowiązuje nadrzędna [zasada prostoty z AGENTS.md](../AGENTS.md): najprostsze 
 
 ## 1. Zadanie, pakiet i bramka
 
-- `P01`–`P40`: zadania merytoryczne z IMPLEMENTATION_PLAN.md.
-- `PKG-001`–`PKG-033`: zakresy kolejnych sesji, zawierające konkretne zadania lub jeden komplet skoczni.
+- `P01`–`P43`: zadania merytoryczne z IMPLEMENTATION_PLAN.md.
+- `PKG-001`–`PKG-048`: zakresy kolejnych sesji, zawierające konkretne zadania lub jeden komplet skoczni.
 - Bramka A–E: większy etap produktu; nie wymaga wykonywania całego etapu w jednej sesji.
-- Kody `P21-H01` i `P32-H05`: cztery podzadania D/G/A/V dla danego obiektu. Pakiet jest ukończony dopiero po wszystkich czterech.
+- Kody `P21-H01` i `P32-H05`–`P32-H32`: cztery podzadania D/G/A/V dla danego obiektu. Pakiet jest ukończony dopiero po wszystkich czterech.
 
-Poprzedni handoff P01–P12 obejmował cały prototyp i zbyt szeroki zakres na pierwszy pakiet. Teraz prototyp zajmuje PKG-001–003. Pełne 40 zadań oraz 20 obiektów pozostają w planie.
+Poprzedni handoff P01–P12 obejmował cały prototyp i zbyt szeroki zakres na pierwszy pakiet. Teraz prototyp zajmuje PKG-001–003. Wszystkie zadania oraz pełna lista obiektów PŚ (H01–H32 po P43) pozostają w planie.
 
 ## 2. Mapa pakietów
 
@@ -37,25 +37,38 @@ Każdy wiersz ma dokładny zakres. Następny numer można rozpocząć po zamkni�
 | PKG-014 | P23, P24, P25 | Sezon, własny kalendarz i silnik turnieju KO | COMPLETE |
 | PKG-015 | P26, P27, P28 | Drużyny, Super Team i King of the Hill | NOT STARTED |
 | PKG-016 | P29, P30, P31 | Rekordy/statystyki, komplet sprite/UI i dźwięku; bramka C po P29 | NOT STARTED |
-| PKG-017 | P32-H05 | Garmisch-Partenkirchen: D/G/A/V | NOT STARTED |
-| PKG-018 | P32-H06 | Innsbruck: D/G/A/V | NOT STARTED |
-| PKG-019 | P32-H07 | Bischofshofen: D/G/A/V i finalne obiekty turnieju | NOT STARTED |
-| PKG-020 | P32-H08 | Wisła: D/G/A/V | NOT STARTED |
-| PKG-021 | P32-H09 | Szczyrk: D/G/A/V | NOT STARTED |
-| PKG-022 | P32-H10 | Lahti: D/G/A/V | NOT STARTED |
-| PKG-023 | P32-H11 | Ruka: D/G/A/V | NOT STARTED |
-| PKG-024 | P32-H12 | Holmenkollen: D/G/A/V | NOT STARTED |
-| PKG-025 | P32-H13 | Lillehammer duża: D/G/A/V | NOT STARTED |
-| PKG-026 | P32-H14 | Falun: D/G/A/V | NOT STARTED |
-| PKG-027 | P32-H15 | Engelberg: D/G/A/V | NOT STARTED |
-| PKG-028 | P32-H16 | Titisee-Neustadt: D/G/A/V | NOT STARTED |
-| PKG-029 | P32-H17 | Klingenthal: D/G/A/V | NOT STARTED |
-| PKG-030 | P32-H18 | Sapporo: D/G/A/V | NOT STARTED |
-| PKG-031 | P32-H19 | Kulm: D/G/A/V | NOT STARTED |
-| PKG-032 | P32-H20 | Vikersund: D/G/A/V; zamknięcie P32 i kalendarza 20 obiektów | NOT STARTED |
-| PKG-033 | P33, P34 | Pierwsze uruchomienie, teksty, bramka D i matryca przeglądarek | NOT STARTED |
-| PKG-034 | P35, P36, P37 | Wydajność, offline, aktualizacje i odporność zapisów | NOT STARTED |
-| PKG-035 | P38, P39, P40 | Playtest, poprawki, artefakt wydania i bramka E | NOT STARTED |
+| PKG-017 | P43 | Weryfikacja listy obiektów PŚ 2023/24–2025/26 i K/HS; aktualizacja mapy pakietów | NOT STARTED |
+| PKG-018 | P32-H05 | Garmisch-Partenkirchen duża: D/G/A/V | NOT STARTED |
+| PKG-019 | P32-H06 | Innsbruck: D/G/A/V | NOT STARTED |
+| PKG-020 | P32-H07 | Bischofshofen: D/G/A/V i finalne obiekty turnieju | NOT STARTED |
+| PKG-021 | P32-H08 | Wisła: D/G/A/V | NOT STARTED |
+| PKG-022 | P32-H09 | Szczyrk normalna: D/G/A/V (o ile P43 potwierdzi konkurs PŚ) | NOT STARTED |
+| PKG-023 | P32-H10 | Lahti: D/G/A/V | NOT STARTED |
+| PKG-024 | P32-H11 | Ruka: D/G/A/V | NOT STARTED |
+| PKG-025 | P32-H12 | Holmenkollen: D/G/A/V | NOT STARTED |
+| PKG-026 | P32-H13 | Lillehammer duża: D/G/A/V | NOT STARTED |
+| PKG-027 | P32-H14 | Falun: D/G/A/V | NOT STARTED |
+| PKG-028 | P32-H15 | Engelberg: D/G/A/V | NOT STARTED |
+| PKG-029 | P32-H16 | Titisee-Neustadt: D/G/A/V | NOT STARTED |
+| PKG-030 | P32-H17 | Klingenthal: D/G/A/V | NOT STARTED |
+| PKG-031 | P32-H18 | Sapporo: D/G/A/V | NOT STARTED |
+| PKG-032 | P32-H19 | Kulm: D/G/A/V | NOT STARTED |
+| PKG-033 | P32-H20 | Vikersund: D/G/A/V | NOT STARTED |
+| PKG-034 | P32-H21 | Willingen: D/G/A/V | NOT STARTED |
+| PKG-035 | P32-H22 | Lake Placid: D/G/A/V | NOT STARTED |
+| PKG-036 | P32-H23 | Trondheim duża: D/G/A/V | NOT STARTED |
+| PKG-037 | P32-H24 | Trondheim normalna: D/G/A/V | NOT STARTED |
+| PKG-038 | P32-H25 | Oberstdorf mamut: D/G/A/V | NOT STARTED |
+| PKG-039 | P32-H26 | Planica duża: D/G/A/V | NOT STARTED |
+| PKG-040 | P32-H27 | Villach normalna: D/G/A/V | NOT STARTED |
+| PKG-041 | P32-H28 | Hinzenbach normalna: D/G/A/V | NOT STARTED |
+| PKG-042 | P32-H29 | Ljubno normalna: D/G/A/V | NOT STARTED |
+| PKG-043 | P32-H30 | Zaō normalna: D/G/A/V | NOT STARTED |
+| PKG-044 | P32-H31 | Râșnov normalna: D/G/A/V | NOT STARTED |
+| PKG-045 | P32-H32 | Zhangjiakou: D/G/A/V; zamknięcie P32 i kalendarza wszystkich obiektów PŚ | NOT STARTED |
+| PKG-046 | P33, P34 | Pierwsze uruchomienie, teksty, bramka D i matryca przeglądarek | NOT STARTED |
+| PKG-047 | P35, P36, P37 | Wydajność, offline, aktualizacje i odporność zapisów | NOT STARTED |
+| PKG-048 | P38, P39, P40 | Playtest, poprawki, artefakt wydania i bramka E | NOT STARTED |
 
 ## 3. Zamknięcie każdego pakietu
 
@@ -97,4 +110,4 @@ Statusy wykonania: NOT STARTED, IN PROGRESS, COMPLETE, INCOMPLETE, BLOCKED. Wyni
 
 Jeżeli obowiązkowy test lub wymagane zadanie nie zostały wykonane, raport określa wpływ. Gdy to uniemożliwia przyjęcie zakresu, pakiet pozostaje INCOMPLETE/BLOCKED i następny prompt kontynuuje ten sam pakiet. Można wcześniej wykonać niezależne części, ale nie ukrywać braków przez oznaczenie całego pakietu COMPLETE. Odbiór PLAYABILITY nie jest wymagany w PKG-001; tam oceniamy działający fundament, nie przyjemność ze skoku.
 
-Na końcu PKG-035 prompt wskazuje rzeczywiście pozostały odbiór użytkownika lub publikację wymagającą osobnego polecenia. Jeśli cała praca jest ukończona, opisuje stan wydania i brak dalszych zadań implementacyjnych. Nie wymyśla kolejnych funkcji tylko po to, aby istniał następny pakiet.
+Na końcu PKG-048 prompt wskazuje rzeczywiście pozostały odbiór użytkownika lub publikację wymagającą osobnego polecenia. Jeśli cała praca jest ukończona, opisuje stan wydania i brak dalszych zadań implementacyjnych. Nie wymyśla kolejnych funkcji tylko po to, aby istniał następny pakiet.

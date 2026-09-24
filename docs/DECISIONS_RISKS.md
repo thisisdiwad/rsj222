@@ -17,7 +17,7 @@ Stan: 19.09.2026. Decyzje są kierunkiem realizacji, nie zatwierdzonym przez tes
 | D09 | Autorska fizyka i grafika | Nie jest portem Pascala ani emulatorem; dokumentujemy inspirację |
 | D10 | Brak ukrytego losowania upadku/not | Powtarzalność i czytelna nauka; wiatr nadal zmienny |
 | D11 | Reguły standardowego WC Men jako bazowy format | Konkretny sprawdzony profil; autorska obsada i kalendarz nie udają licencjonowanego sezonu |
-| D12 | Pełne v1 ma 20 skoczni i wszystkie tryby z GDD | MVP z 4 obiektami jest etapem, nie zamknięciem całego projektu |
+| D12 | Pełne v1 ma 20 skoczni i wszystkie tryby z GDD — liczbę skoczni ZASTĄPIŁA D20 | MVP z 4 obiektami jest etapem, nie zamknięciem całego projektu |
 | D13 | Edytor skoczni i multiplayer online po v1 | Własny kalendarz pozostaje w v1; brak rozrostu zanim skok przejdzie odbiór |
 | D14 | Dane i replaye wersjonowane od początku | Zmiana fizyki nie przepisuje starych rekordów |
 | D15 | Gra nie odtwarza administracji i licencji FIS | Sportowy wynik i oznaczenia są w zakresie; krajowe kwoty, protesty i kontrola sprzętu nie są mechanikami v1 |
@@ -25,6 +25,8 @@ Stan: 19.09.2026. Decyzje są kierunkiem realizacji, nie zatwierdzonym przez tes
 | D17 | Mała gra, prosta implementacja, jedno końcowe review | Bezpośrednia zasada użytkownika dla GPT-5.6 Sol i kolejnych modeli; nadmiar infrastruktury, raportów i rund audytu jest zabroniony. AGENTS.md ma pierwszeństwo przed starszymi zaleceniami procesu |
 | D18 | Ścisła kalibracja skoczni realnych (19.09.2026) — ZASTĄPIONA przez D19 | Historyczna bramka wymagająca pełnych statystyk FIS; zachowana dla interpretacji wcześniejszych raportów PKG-009. Nie blokuje już adaptacji inspirowanych realnymi obiektami. |
 | D19 | Grywalne skocznie inspirowane realnymi (23.09.2026) — OBOWIĄZUJE | K/HS zgodne z obiektem, pozostała geometria i balans ADAPT/TUNE sprawdzone w grze; bez twierdzenia o homologacji. Każdy obiekt ma odrębną sylwetkę, detale i paletę. Fotografie mogą inspirować, nie są wymagane. Gracz może ustać równolegle bez podpórki co najmniej 2 m za prawdziwym rekordem z karty, choć podpórka jest tam częstsza przy błędzie. Determinizm i odbiór VISUAL użytkownika pozostają obowiązkowe; szczegóły w AGENTS.md. |
+
+| D20 | Wszystkie skocznie PŚ z trzech ostatnich sezonów (24.09.2026) — OBOWIĄZUJE | Bezpośrednie polecenie użytkownika: gra zawiera każdą skocznię, na której rozegrano zawody PŚ w skokach (M i K, skoki i loty) w sezonach 2023/24, 2024/25 i 2025/26 — robocza lista H01–H32, zamykana źródłowo przez P43. Każdy obiekt powstaje na tych samych zasadach co H01–H04 (D19, cykl D/G/A/V, jeden obiekt na pakiet, VISUAL od użytkownika). |
 
 Wcześniejsze robocze założenia o profilu Classic, mamucie K185 z SJ3 i niskiej bazie 640×360 zostały zastąpione powyższymi decyzjami. Research historyczny zachowuje te liczby wyłącznie jako opis pierwowzoru. Nie przywracać ich z wcześniejszego kontekstu.
 
@@ -45,7 +47,7 @@ Wcześniejsze robocze założenia o profilu Classic, mamucie K185 z SJ3 i niskie
 | R11 | Po aktualizacji zmienia się replay/rekord | Próbki stanu, wersje, archiwalne rekordy | P20, P29 |
 | R12 | Wydajność docelowego artu jest gorsza niż placeholderów | Benchmark pełnej sceny i klasy słabszego laptopa | P15, P35 |
 | R13 | Cache miesza wersje gry | Manifest buildId, update poza skokiem, scope podkatalogu | P36 |
-| R14 | 20 skoczni to 20 przemalowań jednego profilu | Indywidualne dossier i parametry geometrii każdego obiektu | P21, P32 |
+| R14 | Wszystkie skocznie listy to przemalowania jednego profilu | Indywidualne dossier i parametry geometrii każdego obiektu | P21, P32 |
 | R15 | Nadinterpretacja materiałów referencyjnych | Własne assety, manifest praw i brak researchu w buildzie | P02, P30, P39 |
 
 ## Niewiadome, które mają konkretny sposób zamknięcia
@@ -55,14 +57,14 @@ Wcześniejsze robocze założenia o profilu Classic, mamucie K185 z SJ3 i niskie
 | Q01 | UNRESOLVED | Odczucie oryginalnego SJ3 w ruchu | P01: kontrolowana sesja i notatki; jeśli uruchomienie niedostępne, obejrzany gameplay z zaznaczeniem ograniczenia |
 | Q02 | TUNE | Finalne parametry aerodynamiki/timingu i skala skoczka | P06–P12, P15; krzywe błędu i feedback graczy |
 | Q03 | RESOLVED FOR MVP / ADAPT | Coach threshold obcinany w dół do 0,5 m; rekompensaty half-away-from-zero; najpierw clamp długość+styl, potem rekompensaty i finalny clamp; 95% długiego upadku porównywane dokładnie na skompensowanej długości grupy awansującej | P13: ICR June 2026 + nagłówki/wyniki Zakopane, Oberstdorf i Kulm. P16: ICR §422.14 i WC Men 2026/27 §4.3.1; brak dodatkowego zaokrąglenia w źródle oznacza porównanie dokładnego ułamka po zaokrąglonych składowych punktowych. Finalny clamp skrajnego wyniku pozostaje jawną polityką MVP |
-| Q04 | UNRESOLVED | Pełna geometria wszystkich 20 obiektów i podstawowe parametry pozostałych 15 | P21/P32: osobne karty; obecny research potwierdza K/HS i współczynniki 4 MVP oraz Kulm, ale nie ich pełne profile |
+| Q04 | UNRESOLVED | Ostateczna lista obiektów PŚ 2023/24–2025/26 (P43), pełna geometria wszystkich obiektów i podstawowe parametry nowych kart | P21/P32: osobne karty; obecny research potwierdza K/HS i współczynniki 4 MVP oraz Kulm, ale nie ich pełne profile |
 | Q05 | RESOLVED FOR MVP / ADAPT | Wagi 0,25/0,45/0,30 i okno wybicie→pomiar nie odtwarzają aparatury FIS | P13 zachowuje jawne pochodzenie ADAPT; HUD nie jest wejściem punktacji |
 | Q06 | RESOLVED FOR P15 | Canvas2D wystarcza dla reprezentatywnego artu 960×540 | Pomiar headed na Iris Xe: p95 16,9 ms, p99 17,0 ms; pozostaje ponowny pomiar masowej zawartości w P35 |
 | Q07 | UNRESOLVED | Docelowa publiczna nazwa i hosting | Robocza nazwa zostaje; P39 przygotowuje neutralny pakiet publikacji, bez samodzielnej publikacji |
 | Q08 | UNRESOLVED / poza v1 | Niespójność 40/50 w aktualnym WC Women | Weryfikować przy dodaniu tego formatu, nie blokuje bazowego profilu |
 | Q09 | RESOLVED FOR P15 / TUNE FOR P30 | Wzorzec zachowuje pixel art przy 58 px nart i ok. 43 px sylwetki, własnym foncie 5×7 i tle 960×540 | P15: zrzuty 1×/2× i nagranie OBSERVED; pełny bank animacji i pozostałe ekrany pozostają P30 |
 
-Braki dokumentacyjne nie są pretekstem do wymyślania faktów. Jednocześnie nie blokują wszystkich prac: można zbudować ekran, wejście i profil techniczny zanim zamknie się kartę H20. Bramka dotyczy konkretnej funkcji lub obiektu.
+Braki dokumentacyjne nie są pretekstem do wymyślania faktów. Jednocześnie nie blokują wszystkich prac: można zbudować ekran, wejście i profil techniczny zanim zamknie się ostatnią kartę listy. Bramka dotyczy konkretnej funkcji lub obiektu.
 
 ## Zmiany zakresu w przyszłości
 
