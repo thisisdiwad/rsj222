@@ -11,7 +11,7 @@ Wskazuje najmniejszy zestaw pomocy do biezacego zadania.
 
 ## Najpierw przeczytaj (obowiazkowe)
 
-1. `AGENTS.md`, `docs/NEXT_SESSION_PROMPT.md` (aktywny pakiet PKG-004),
+1. `AGENTS.md`, `docs/NEXT_SESSION_PROMPT.md` (aktywny pakiet),
    `docs/PACKAGE_WORKFLOW.md` (regula zamkniecia).
 2. Dopiero potem skill z ponizszej tabeli — jeden, nie wszystkie.
 

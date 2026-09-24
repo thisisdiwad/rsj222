@@ -8,7 +8,9 @@
 
 ## Zasady projektu
 
-**Twarda zasada użytkownika (23.09.2026): projekt prowadzimy bez Git.** Zapisuj zmiany bezpośrednio na dysku. Nie wykonuj żadnych poleceń Git, nie twórz ani nie odtwarzaj repozytorium czy konfiguracji Git; zakaz obejmuje także stage/commit/reset/restore/clean/push. Zmienić go może tylko nowe, wyraźne polecenie użytkownika. Historyczne użycie Git w starych raportach jest faktem z przeszłości, nie uprawnieniem do jego użycia. Nie korzystaj z plików Git zachowanych w nietykanym backupie.
+**Praca w repozytorium GitHub (polecenie użytkownika 24.09.2026).** Projekt prowadzimy bezpośrednio w repozytorium `thisisdiwad/rsj222`: zmiany na gałęzi roboczej wskazanej przez środowisko, czytelne commity, wypchnięcie gałęzi i PR do przeglądu. To polecenie uchyla dawny zakaz Git z 23.09.2026. Wzmianki o katalogu `C:\retro-ski-jumping`, lokalnym backupie `retro-ski-jumping-23-09-2026-backup` i pracy „bez Git” w starszych promptach i raportach są artefaktem lokalnego etapu — traktuj je jako historię, nie instrukcję. Nie przepisuj historii cudzych gałęzi i nie wypychaj na gałęzie inne niż robocza bez polecenia.
+
+Środowisko: `npm ci` instaluje zależności (`node_modules`, `dist/`, `test-results/` i `logs/` są w `.gitignore`). Playwright może użyć preinstalowanego Chromium przez zmienną `PW_CHROMIUM_EXECUTABLE`; nie pobieraj przeglądarek bez potrzeby.
 
 Przed pracą przeczytaj `docs/README.md`, aktualny `docs/NEXT_SESSION_PROMPT.md` i `docs/PACKAGE_WORKFLOW.md`. Jeżeli katalog `.github/skills/README.md` nadal nie istnieje, użyj dostępnego katalogu `.agents/skills/`; nie twórz fikcyjnego opisu brakującego pliku.
 

@@ -5,7 +5,7 @@ Skopiuj calosc ponizej jako samodzielny prompt nowej sesji.
 ---
 
 Ocen przydatnosc warstwy wsparcia TOOLING-001 dla gry retro-ski-jumping.
-Katalog: `C:\retro-ski-jumping`. NIC NIE IMPLEMENTUJ — to ocena, nie pakiet.
+Repozytorium: GitHub `thisisdiwad/rsj222`. NIC NIE IMPLEMENTUJ — to ocena, nie pakiet.
 Nie zmieniaj kodu gry, specyfikacji, planu ani `docs/NEXT_SESSION_PROMPT.md`.
 
 ## Lektura (tylko ta)

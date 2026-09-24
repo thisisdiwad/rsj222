@@ -1,6 +1,6 @@
 # Kompletny plan wykonania gry
 
-Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; P21–P22 COMPLETE; P23–P40 NOT STARTED (następny PKG-014/P23–P25)**. H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [zakaz Git i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Backup pozostaje nietknięty. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
+Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; P26–P40 NOT STARTED (następny PKG-015/P26–P28)**. H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
 
 Źródła wymagań: [GDD](PRODUCT_GDD.md), [mechanika](GAMEPLAY_SPEC.md), [oprawa](ART_UI_AUDIO.md), [technika](TECHNICAL_DESIGN.md), [zawartość](CONTENT_PLAN.md), [QA](QA_ACCEPTANCE.md). Reguły sportowe nie są odtwarzane z pamięci ani z instrukcji SJ3.
 
@@ -283,24 +283,24 @@ Gra 4 skoczni, standardowy konkurs, trening, AI, hotseat, pełna punktacja, zapi
 
 **Zależności:** P16, P19, P21. **Pliki:** season reducer, calendar manifest, SeasonScreen, testy.
 
-- [ ] Wyniki konkursów dają punkty pucharowe, nie dodają się jako punkty skoku; poprawne remisy.
-- [ ] Wznowienie pomiędzy konkursami i zakończenie sezonu działa; na początku testowy kalendarz 4 obiektów, pełne 20 po P32.
+- [x] Wyniki konkursów dają punkty pucharowe, nie dodają się jako punkty skoku; poprawne remisy.
+- [x] Wznowienie pomiędzy konkursami i zakończenie sezonu działa; na początku testowy kalendarz 4 obiektów, pełne 20 po P32.
 - **Weryfikacja:** kontrolny sezon ze zdefiniowaną tabelą wyników i restartem w połowie.
 
 ### P24 — Własny kalendarz [M]
 
 **Zależności:** P23. **Pliki:** calendar schema, editor screen, set hash, persistence, testy.
 
-- [ ] Wybrać 1–40 konkursów, zmienić kolejność, zapisać/wczytać; brak odwołań do nieistniejących skoczni.
-- [ ] Rekord zestawu rozróżnia kolejność, wersje i ustawienia.
+- [x] Wybrać 1–40 konkursów, zmienić kolejność, zapisać/wczytać; brak odwołań do nieistniejących skoczni.
+- [x] Rekord zestawu rozróżnia kolejność, wersje i ustawienia.
 - **Weryfikacja:** klawiaturowa edycja i powtórzenie tego samego zestawu; zmiana kolejności daje inny klucz.
 
 ### P25 — Turniej czterech skoczni i KO [M]
 
 **Zależności:** P16, P23. **Pliki:** ko draw, ko advancement, bracket screen, tournament totals, testy.
 
-- [ ] Dokładne pary,25 + 5 i wszystkie wyjątki remisu/nieobecności ze specyfikacji.
-- [ ] Cztery konkursy sumują punkty skoków; docelowe H03/H05/H06/H07 po integracji P32.
+- [x] Dokładne pary,25 + 5 i wszystkie wyjątki remisu/nieobecności ze specyfikacji.
+- [x] Cztery konkursy sumują punkty skoków (zestaw testowy H01–H04, PKG-014); docelowe H03/H05/H06/H07 po integracji P32.
 - **Weryfikacja:** Q-FIS-11/13 i fixtures całej drabinki; żadnego udawanego losowania par.
 
 ### P26 — Drużyny czteroosobowe [M]

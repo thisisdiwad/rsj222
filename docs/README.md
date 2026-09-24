@@ -1,9 +1,9 @@
 # Dokumentacja projektu
 
 Data researchu: **2026-09-21**. Język produktu i dokumentacji: polski.
-**Stan 24.09.2026: PKG-001–013 COMPLETE; P21–P22 COMPLETE (H01–H04 z odbiorem
-użytkownika; ustawienia/remap/dostępność bez odbioru VISUAL);
-następny PKG-014/P23–P25.** Grywalne są techniczna K120/HS134,
+**Stan 24.09.2026: PKG-001–014 COMPLETE; P21–P25 COMPLETE (H01–H04 z odbiorem
+użytkownika; ustawienia P22 oraz ekrany sezonu/kalendarza/KO P23–P25 bez odbioru VISUAL);
+następny PKG-015/P26–P28.** Grywalne są techniczna K120/HS134,
 [Lillehammer inspirowana K90/HS98](hills/H01.md),
 [Zakopane inspirowane K125/HS140](hills/H02.md) i
 [Oberstdorf inspirowany K120/HS137](hills/H03.md), a także
@@ -25,18 +25,16 @@ Sześć pierwotnych artefaktów PKG-010 nadpisanych podczas regresji H02 nie
 zostało odnalezionych w zaufanych źródłach; użytkownik zaakceptował
 udokumentowaną utratę („dobra, trudno”). Bieżące pliki nie są oryginałami,
 stary manifest pozostaje nietknięty; nie ustanowiono nowej bazy dowodów.
-Wcześniej odtworzono główny katalog `.git` (jeden początkowy commit `9b4a5ad`,
-25 niedopasowanych nieosiągalnych blobów), ale projekt jest teraz prowadzony
-**bez Git**: zapisuj bezpośrednio na dysku, bez poleceń Git, konfiguracji ani
-odtwarzania repozytorium. Główny `.git` usunięto 23.09.2026, głównego
-`.gitignore` nie było. Backup
-`C:\retro-ski-jumping\retro-ski-jumping-23-09-2026-backup` (stan tylko do PKG-009)
-zawiera własne `.git` i `.gitignore`; pozostaw cały backup nietknięty i nie
-używaj ich. Historyczna utrata dowodów jest zaakceptowana, nie odzyskana.
+Od 24.09.2026 projekt jest prowadzony **w repozytorium GitHub `thisisdiwad/rsj222`**
+(gałąź robocza, commity, PR) — polecenie użytkownika uchyla dawny zakaz Git. Wzmianki
+o `C:\retro-ski-jumping`, lokalnym backupie i pracy „bez Git” w starszych dokumentach
+są historią etapu lokalnego. Historyczna utrata dowodów PKG-010 jest zaakceptowana, nie odzyskana.
 H04 użytkownik zaakceptował 24.09.2026 („resztę akceptuje”) po dwóch
 wskazanych poprawkach (ciemniejsza banda rozbiegu, belka AUTO niżej o 2),
-które wykonano. [Aktywny handoff — PKG-014/P23–P25](NEXT_SESSION_PROMPT.md):
-sezon, własny kalendarz i silnik KO.
+które wykonano. PKG-014 dodał puchar sezonu, własny kalendarz z kluczem zestawu
+i silnik KO wg F03 §4.3.2 ([raport](evidence/PKG-014/REPORT.md), zrzuty czekają na
+werdykt VISUAL). [Aktywny handoff — PKG-015/P26–P28](NEXT_SESSION_PROMPT.md):
+drużyny, Super Team i King of the Hill.
 
 ## Jak czytać
 
