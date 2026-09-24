@@ -1,9 +1,19 @@
 /**
  * PKG-005 / P16 — mały reducer jednego standardowego konkursu.
+ * PKG-014 / P25 — ten sam przebieg w formacie KO (pary i najlepsi przegrani).
  *
  * Moduł nie zna DOM, renderera ani zegara. Każdy slot serii jest rozliczany
  * najwyżej raz, a statusy administracyjne nigdy nie udają wyniku zero.
  */
+
+import {
+  createKoBracket,
+  koFinalStartOrder,
+  koFirstRoundStartOrder,
+  koQualificationRanking,
+  resolveKoFirstRound,
+  type KoBracket,
+} from './ko'
 
 export type CompetitionRoundId = 'qualification' | 'first' | 'final'
 export type CompetitionStatus = 'active' | 'complete' | 'cancelled'
@@ -11,6 +21,8 @@ export type RoundStatus = 'active' | 'complete' | 'cancelled'
 export type AdministrativeStatus = 'dns' | 'nps' | 'dsq' | 'withdrawn'
 export type ScoredStatus = 'landed' | 'fall'
 export type AiDifficulty = 'easy' | 'normal' | 'hard'
+/** `standard`: 50/40→30; `ko`: dokładnie 50, 25 par + 5 najlepszych przegranych. */
+export type CompetitionFormat = 'standard' | 'ko'
 
 export type EntrantController =
   | { readonly kind: 'ai'; readonly difficulty: AiDifficulty }
@@ -96,6 +108,10 @@ export type CompetitionState = {
     readonly hill: string
   }
   readonly events: readonly CompetitionEvent[]
+  /** Brak pola w starszych zapisach oznacza konkurs standardowy. */
+  readonly format?: CompetitionFormat
+  /** Drabinka KO: ustalana po kwalifikacjach, rozstrzygana po I serii. */
+  readonly ko?: KoBracket | null
 }
 
 export type RankingEntry = {
@@ -153,6 +169,7 @@ export function createStandardCompetition(input: {
   readonly seed: number
   readonly rulesVersion: string
   readonly hillVersion: string
+  readonly format?: CompetitionFormat
 }): CompetitionState {
   requireEntrants(input.entrants)
   if (!input.id) throw new Error('Konkurs wymaga identyfikatora.')
@@ -180,10 +197,12 @@ export function createStandardCompetition(input: {
     seed: input.seed >>> 0,
     versions: { rules: input.rulesVersion, hill: input.hillVersion },
     events: [],
+    ...(input.format === 'ko' ? { format: 'ko' as const, ko: null } : {}),
   }
+  const formatLabel = input.format === 'ko' ? ', system KO' : ''
   return {
     ...initial,
-    events: [event(initial, 'competition-created', `75 miejsc, belka jury ${input.juryGateNumber}`)],
+    events: [event(initial, 'competition-created', `75 miejsc${formatLabel}, belka jury ${input.juryGateNumber}`)],
   }
 }
 
@@ -301,6 +320,7 @@ function finishRound(state: CompetitionState): RecordAttemptResult {
   if (round.id === 'final') {
     return { state: { ...nextState, status: 'complete' }, roundCompleted: round.id }
   }
+  if (state.format === 'ko') return openNextKoRound(nextState, completed)
 
   const limit = round.id === 'qualification'
     ? (state.hillClass === 'flying' ? 40 : 50)
@@ -329,6 +349,53 @@ function finishRound(state: CompetitionState): RecordAttemptResult {
     },
     roundCompleted: round.id,
   }
+}
+
+function openNextRound(
+  state: CompetitionState,
+  completed: CompetitionRound,
+  startOrder: readonly string[],
+  ko: KoBracket | null,
+): RecordAttemptResult {
+  const withBracket = ko ? { ...state, ko } : state
+  if (startOrder.length === 0) {
+    return { state: { ...withBracket, status: 'complete' }, roundCompleted: completed.id }
+  }
+  const nextRound: CompetitionRound = {
+    id: completed.id === 'qualification' ? 'first' : 'final',
+    status: 'active',
+    startOrder,
+    attempts: {},
+    discardedAttemptCount: 0,
+  }
+  return {
+    state: {
+      ...withBracket,
+      rounds: [...withBracket.rounds, nextRound],
+      currentRoundIndex: withBracket.currentRoundIndex + 1,
+      nextStartIndex: 0,
+    },
+    roundCompleted: completed.id,
+  }
+}
+
+/** P25 — kwalifikacje tworzą pary, I seria wyłania 25 zwycięzców + najlepszych przegranych. */
+function openNextKoRound(state: CompetitionState, completed: CompetitionRound): RecordAttemptResult {
+  if (completed.id === 'qualification') {
+    const startNumbers = new Map(state.entrants.map((entrant) => [entrant.id, entrant.startNumber]))
+    const bracket = createKoBracket(
+      koQualificationRanking(completed.attempts, (participantId) => startNumbers.get(participantId) ?? 0),
+    )
+    return openNextRound(state, completed, koFirstRoundStartOrder(bracket), bracket)
+  }
+  if (!state.ko) throw new Error('Seria KO bez drabinki z kwalifikacji.')
+  const ordered = roundScoreOrder(completed)
+  const group = new Set(completed.startOrder)
+  const longFall = new Set(
+    ordered.filter((attempt) => qualifiesByLongFall(attempt, ordered, group)).map((attempt) => attempt.participantId),
+  )
+  const resolved = resolveKoFirstRound(state.ko, completed.attempts, longFall)
+  return openNextRound(state, completed, koFinalStartOrder(resolved, completed.attempts), resolved)
 }
 
 export function recordAttempt(state: CompetitionState, attempt: CompetitionAttempt): RecordAttemptResult {
