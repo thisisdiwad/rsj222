@@ -3,7 +3,7 @@
 Data researchu: **2026-09-21**. Język produktu i dokumentacji: polski.
 **Stan 24.09.2026: PKG-001–015 COMPLETE; P21–P28 COMPLETE (H01–H04 z odbiorem
 użytkownika; ustawienia P22 bez odbioru VISUAL; ekrany sezonu/kalendarza/KO P23–P25 VISUAL USER PASS;
-ekrany drużyn/Super Team/King of the Hill P26–P28 czekają na odbiór VISUAL);
+ekrany drużyn/Super Team/King of the Hill P26–P28 VISUAL USER PASS);
 następny PKG-016/P29–P31.** Grywalne są techniczna K120/HS134,
 [Lillehammer inspirowana K90/HS98](hills/H01.md),
 [Zakopane inspirowane K125/HS140](hills/H02.md) i

@@ -47,9 +47,9 @@ Nie zaczynaj P32+, P43, H05–H32 ani nowych skoczni.
   TRENING, KONKURS, POWTÓRKA, USTAWIENIA, PUCHAR SEZONU, TURNIEJ KO, DRUŻYNOWY, SUPER TEAM,
   KING OF THE HILL. **DB v3** bez zmian: sessions, results, records, replays, leases, settings,
   seasons, calendars.
-- **VISUAL ekranów PKG-015 czeka na odbiór użytkownika** (zrzuty `docs/evidence/PKG-015/screens/`).
-  Jeśli użytkownik zgłosi uwagi, popraw je na początku sesji i zapisz werdykt w raporcie PKG-015
-  (jak w PKG-014: dosłowny cytat, bez samodzielnego PASS). Ekrany PKG-014 mają VISUAL USER PASS.
+- Ekrany PKG-015 (obsada drużyn, tabela drużynowa, King of the Hill) i PKG-014 (hub sezonu,
+  kalendarz, drabinka KO) mają **VISUAL USER PASS 24.09.2026** (PKG-015: „akceptuje”); zrzuty
+  w `docs/evidence/PKG-015/screens/` i `PKG-014/screens/` są wzorcem stylu dla nowych ekranów.
 - Rekordy dziś: jedna polityka rekordu konkursowego z P19 (`recordKey` z wersji, `RecordCandidate`
   w transakcji skoku) i licznik ukończonych sezonów danego klucza zestawu (P24). Brak ekranów
   rekordów/statystyk, brak osobnych rekordów treningu, zestawu i wariantów rozrywkowych.

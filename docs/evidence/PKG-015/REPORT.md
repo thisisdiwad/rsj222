@@ -1,7 +1,7 @@
 # PKG-015 / P26–P28 — raport: drużyny, Super Team i King of the Hill
 
 **Status: COMPLETE (24.09.2026) — zakres P26, P27, P28 wykonany; jedno końcowe review zamknięte.**
-**VISUAL: czeka na odbiór użytkownika** (zrzuty w `screens/`); model nie wydaje werdyktu VISUAL. Zewnętrzny PLAYABILITY NOT RUN.
+**VISUAL USER PASS 24.09.2026** — użytkownik po scaleniu PR 2: „akceptuje” (ekrany obsady drużyn, tabeli drużynowej, konfiguracji i eliminacji King of the Hill ze zrzutów `screens/`). Zewnętrzny PLAYABILITY NOT RUN.
 
 ## Status zadań
 
@@ -36,7 +36,7 @@
 - Regresja przed ostatnimi poprawkami review (zmieniony tylko widok końcowej tabeli i walidacja zapisu): `shell.spec.ts` **5/5 PASS**, `season.spec.ts` **3/3 PASS** (`--output=docs/evidence/PKG-015/tmp-shell-final`, `tmp-season-final`). `season.spec.ts` dostał poprawkę nawigacji menu (↑ z „trening” zawija teraz na KotH).
 - Katalogi `tmp-*` sprawdzono przed uruchomieniem (nie istniały); zrzuty przeniesiono do `screens/`, katalogi tymczasowe usunięto. `test:e2e` obejmuje teraz `modes.spec.ts`.
 
-## Zrzuty do odbioru VISUAL (użytkownik)
+## Zrzuty odebrane przez użytkownika (VISUAL USER PASS 24.09.2026)
 
 `screens/`: `menu-modes.png`, `team-setup.png`, `team-table-after-first.png`, `team-final.png`, `superteam-setup.png`,
 `superteam-after-first.png`, `superteam-after-second.png`, `superteam-final.png`, `koth-setup.png`,
@@ -53,7 +53,7 @@ Sprawdzono ponownie zmienione ścieżki (typecheck, unit, build, `modes.spec`). 
 
 ## Ograniczenia
 
-- VISUAL nowych ekranów: czeka na użytkownika. PLAYABILITY NOT RUN.
+- VISUAL nowych ekranów: USER PASS 24.09.2026 („akceptuje”). PLAYABILITY NOT RUN.
 - Linia prowadzenia w drużynach pokazuje cel względem najlepszego zawodnika indywidualnie (nie drużyny); w KotH — względem najlepszej noty bieżącej rundy.
 - Drużynowy i Super Team nie trafiają do pucharu/Pucharu Narodów (punkty drużynowe F03 §3.2 poza zakresem P26–P27).
 - Po wyeliminowaniu ostatniego człowieka gracz nie widzi plansz kolejnych rund, tylko wynik końcowy (świadomie, by nie czekać na boty).
