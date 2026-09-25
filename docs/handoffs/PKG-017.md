@@ -35,10 +35,8 @@ Nie zaczynaj P32 (H05+), P33+ ani nowych skoczni; to pakiet dokumentacyjno-resea
 - **PKG-016 (P29–P31):** rekordy w kategoriach trening/konkurs/rozrywka/zestaw z archiwum wersji i replayem rekordu,
   statystyki, dźwięk syntezowany w kodzie (`src/audio/`) z suwakami efektów/publiczności/muzyki (ustawienia v2), font
   z pełną interpunkcją, duży tekst w tabelach, poza hamowania, `docs/ASSETS_MANIFEST.md`. DB v3 bez zmian.
-- **Odbiór PKG-016:** VISUAL P30 (oprawa, ekran rekordów, duży tekst, hamowanie) i odsłuch P31 **czekają na użytkownika**
-  (`docs/evidence/PKG-016/screens/`, w tym `training-full-jump-960x540.webm`). Jeśli użytkownik zgłosi uwagi, popraw je
-  najpierw (to dokończenie PKG-016), zapisz dosłowny werdykt w `docs/evidence/PKG-016/REPORT.md` i dopiero potem P43.
-  Bez samodzielnego PASS.
+- **Odbiór PKG-016:** VISUAL P30 (oprawa, ekran rekordów, duży tekst, hamowanie) i odsłuch P31 mają
+  **VISUAL USER PASS 25.09.2026** („akceptuje”); zrzuty i nagranie w `docs/evidence/PKG-016/screens/`.
 - Robocza lista w `docs/CONTENT_PLAN.md` §1: H01–H32 z wątpliwościami: Szczyrk (konkurs mógł zostać odwołany po
   kwalifikacjach), Trondheim normalna, Oberstdorf mamut, Planica duża, Zhangjiakou. Mapa: PKG-018–045 = P32-H05…H32,
   PKG-046–048 = P33–P40.
