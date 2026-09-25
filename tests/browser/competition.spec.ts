@@ -50,9 +50,10 @@ type Snapshot = {
   paused: boolean
   pauseReason: string
   held: string[]
-  menuSelection: 'training' | 'competition'
+  menuSelection: string
   competitionSetup: { profileCount: number; difficulty: string }
   competition: CompetitionDebug | null
+  records: { tab: string; loading: boolean; rows: string[][] }
 }
 
 const OVERLOAD_REASON = 'zbyt długa przerwa klatki'
@@ -544,6 +545,28 @@ test('pełny konkurs: konfiguracja → kwalifikacje → finał → wynik, klawia
   // odpaść po kwalifikacjach; konkurs nadal musi przejść wszystkie rundy.
   expect(humanJumps).toBeGreaterThanOrEqual(1)
   await page.screenshot({ path: test.info().outputPath('competition-final-960x540.png') })
+
+  // P29 / bramka C: wynik → menu → rekordy i statystyki (ostatnia pozycja menu: ↑ z „trening”).
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => (await snapshot(page)).screen).toBe('menu')
+  await resumeIfOverloaded(page)
+  await pressUntilMenu(page, 'ArrowUp', 'records', 'menu → rekordy')
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => (await snapshot(page)).screen).toBe('records')
+  await expect.poll(async () => (await snapshot(page)).records.loading).toBe(false)
+  const records = (await snapshot(page)).records
+  // Rekord konkursu technicznej skoczni istnieje po pełnym konkursie (ustany skok najlepszego zawodnika).
+  const technical = records.rows.find((row) => row[0] === 'TECHNICZNA' && row[1] === 'KONKURS')
+  expect(technical?.[2]).toMatch(/M$/)
+  await page.screenshot({ path: test.info().outputPath('records-tab-960x540.png') })
+  await page.keyboard.press('ArrowRight')
+  await expect.poll(async () => (await snapshot(page)).records.tab).toBe('stats')
+  const stats = (await snapshot(page)).records.rows
+  expect(stats.length).toBeGreaterThanOrEqual(1)
+  expect(Number(stats[0]![1])).toBe(humanJumps)
+  await page.screenshot({ path: test.info().outputPath('records-stats-960x540.png') })
+  await page.keyboard.press('Backspace')
+  await expect.poll(async () => (await snapshot(page)).screen).toBe('menu')
 })
 
 test('10 profili oraz rezygnacja wymagają konfiguracji i potwierdzenia', async ({ page }) => {

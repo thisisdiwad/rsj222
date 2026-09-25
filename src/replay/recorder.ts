@@ -17,7 +17,7 @@ import {
   type ReplaySample,
   type StoredReplay,
 } from '../storage/schema'
-import type { CompetitionJumpResult } from '../sport/jumpResult'
+import type { CompetitionJumpResult, TrainingJumpResult } from '../sport/jumpResult'
 
 export const REPLAY_SAMPLE_HZ = 30
 const SAMPLE_EVERY_TICKS = Math.round(FIXED_HZ / REPLAY_SAMPLE_HZ)
@@ -25,7 +25,7 @@ const SAMPLE_EVERY_TICKS = Math.round(FIXED_HZ / REPLAY_SAMPLE_HZ)
 export type RecorderMeta = {
   readonly sessionId: string
   readonly competitionId: string
-  readonly roundId: CompetitionJumpResult['roundId']
+  readonly roundId: CompetitionJumpResult['roundId'] | 'training'
   readonly participantId: string
   readonly participantName: string
   readonly juryGateNumber: number
@@ -69,7 +69,7 @@ export class JumpRecorder {
     return this.samples.length
   }
 
-  finish(result: CompetitionJumpResult, nowMs: number): StoredReplay {
+  finish(result: CompetitionJumpResult | TrainingJumpResult, nowMs: number): StoredReplay {
     const last = this.samples[this.samples.length - 1]
     if (last === undefined || last.tick < this.sim.tick) this.samples.push(sampleOf(this.sim))
 

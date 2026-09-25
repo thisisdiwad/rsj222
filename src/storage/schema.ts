@@ -13,7 +13,7 @@ import type {
   CompetitionAttempt,
   CompetitionState,
 } from '../sport/competition'
-import type { CompetitionJumpResult } from '../sport/jumpResult'
+import type { CompetitionJumpResult, TrainingJumpResult } from '../sport/jumpResult'
 import type { CalendarEvent, SeasonState } from '../sport/season'
 
 export const DB_NAME = 'retro-ski-jumping'
@@ -112,6 +112,20 @@ export type StoredResult = {
   readonly result: CompetitionJumpResult
 }
 
+/** P29: trening, konkurs (oficjalny), rozrywka (King of the Hill) i zestaw (klucz kalendarza). */
+export type RecordCategory = 'competition' | 'training' | 'fun' | 'set'
+
+export type RecordHolder = {
+  readonly participantId: string
+  readonly participantName: string
+  readonly resultId: string
+  readonly establishedAtMs: number
+}
+
+/**
+ * Rekord jednej kategorii i wersji treści. Pola opcjonalne dopisał P29; zapis
+ * sprzed P29 (bez `category`) to rekord konkursowy.
+ */
 export type StoredRecord = {
   readonly key: string
   readonly distanceHalfMeters: number
@@ -120,6 +134,15 @@ export type StoredRecord = {
   readonly resultId: string
   readonly establishedAtMs: number
   readonly versions: ContentVersions
+  readonly category?: RecordCategory
+  /** Klucz zestawu dla kategorii `set`. */
+  readonly scope?: string | null
+  readonly participantName?: string
+  readonly hillId?: string
+  /** Remis długości: współposiadacze bez zmiany daty ustanowienia. */
+  readonly coHolders?: readonly RecordHolder[]
+  /** Kopia replaya skoku rekordowego (`kind: 'record'`), jeśli był nagrany. */
+  readonly replayId?: string | null
 }
 
 export type ReplaySample = {
@@ -150,14 +173,15 @@ export type StoredReplay = {
   readonly schemaVersion: number
   readonly id: string
   readonly sessionId: string
-  readonly kind: 'auto'
+  /** `auto`: ostatni skok; `record`: kopia skoku rekordowego, nieusuwana przez rotację. */
+  readonly kind: 'auto' | 'record'
   readonly createdAtMs: number
   readonly formatVersion: string
   readonly versions: ContentVersions
   readonly sampleHz: number
   readonly initialState: {
     readonly competitionId: string
-    readonly roundId: CompetitionJumpResult['roundId']
+    readonly roundId: CompetitionJumpResult['roundId'] | 'training'
     readonly participantId: string
     readonly participantName: string
     readonly gateNumber: number
@@ -170,7 +194,7 @@ export type StoredReplay = {
   readonly inputs: readonly ReplayInput[]
   readonly samples: readonly ReplaySample[]
   readonly discreteEvents: readonly ReplayDiscreteEvent[]
-  readonly recordedResult: CompetitionJumpResult
+  readonly recordedResult: CompetitionJumpResult | TrainingJumpResult
 }
 
 export type SessionLeaseRecord = {
@@ -180,19 +204,81 @@ export type SessionLeaseRecord = {
   readonly expiresAtMs: number
 }
 
-// --- Polityka rekordu konkursowego (GAMEPLAY_SPEC §9) ------------------------
+// --- Polityka rekordu (GAMEPLAY_SPEC §9, P19 + P29) --------------------------
 
 export type RecordCandidate = {
-  readonly context: 'training' | 'competition'
+  /** `fun` = wariant rozrywkowy (King of the Hill); drużyny liczą się jako konkurs. */
+  readonly context: 'training' | 'competition' | 'fun'
   readonly status: 'landed' | 'fall'
   readonly administrativeStatus?: AdministrativeStatus | null
   readonly distanceHalfMeters: number
   readonly versions: ContentVersions
+  /** Konkurs sezonu/kalendarza: dodatkowo rekord zestawu o tym kluczu. */
+  readonly setKey?: string | null
+  /** Do tabeli rekordów (P29); brak w zapisach sprzed P29. */
+  readonly participantName?: string
+  readonly hillId?: string
 }
 
 /** Klucz porównywalności: inna wersja zasad/fizyki/skoczni to inna kategoria. */
 export function recordKey(versions: ContentVersions): string {
   return `${versions.rules}|${versions.physics}|${versions.hill}`
+}
+
+/** Klucz rekordu kategorii; konkursowy zachowuje format P19 (bez migracji). */
+export function recordKeyFor(category: RecordCategory, versions: ContentVersions, scope: string | null = null): string {
+  const base = recordKey(versions)
+  if (category === 'competition') return base
+  if (category === 'set') return `set:${scope ?? ''}|${base}`
+  return `${category}|${base}`
+}
+
+export function recordCategoryOf(record: StoredRecord): RecordCategory {
+  return record.category ?? 'competition'
+}
+
+/** Kategorie, które może zmienić dany skok (konkurs sezonu: także zestaw). */
+export function recordTargets(candidate: RecordCandidate): readonly { readonly category: RecordCategory; readonly scope: string | null; readonly key: string }[] {
+  const targets: { category: RecordCategory; scope: string | null; key: string }[] = [
+    { category: candidate.context, scope: null, key: recordKeyFor(candidate.context, candidate.versions) },
+  ]
+  if (candidate.context === 'competition' && candidate.setKey) {
+    targets.push({ category: 'set', scope: candidate.setKey, key: recordKeyFor('set', candidate.versions, candidate.setKey) })
+  }
+  return targets
+}
+
+/** Każda kategoria: tylko ukończony, ustany skok bez statusu administracyjnego. */
+export function isRecordEligible(candidate: RecordCandidate): boolean {
+  if (candidate.status !== 'landed') return false
+  if (candidate.administrativeStatus) return false
+  return Number.isInteger(candidate.distanceHalfMeters) && candidate.distanceHalfMeters > 0
+}
+
+/**
+ * Następny stan rekordu po skoku albo `null`, gdy nic się nie zmienia.
+ * Dłuższy skok: nowy rekord. Ta sama długość innego zawodnika: współposiadacz,
+ * bez zmiany daty. Ten sam wynik (resultId) drugi raz: bez zmian.
+ */
+export function nextRecord(
+  previous: StoredRecord | undefined,
+  entry: Omit<StoredRecord, 'coHolders' | 'replayId'> & { readonly participantName: string },
+): { readonly record: StoredRecord; readonly change: 'new' | 'co-holder' } | null {
+  if (!previous || entry.distanceHalfMeters > previous.distanceHalfMeters) {
+    return { record: { ...entry, coHolders: [], replayId: null }, change: 'new' }
+  }
+  if (entry.distanceHalfMeters < previous.distanceHalfMeters) return null
+  const holders = previous.coHolders ?? []
+  const known = previous.resultId === entry.resultId || previous.participantId === entry.participantId
+    || holders.some((holder) => holder.resultId === entry.resultId || holder.participantId === entry.participantId)
+  if (known) return null
+  const holder: RecordHolder = {
+    participantId: entry.participantId,
+    participantName: entry.participantName,
+    resultId: entry.resultId,
+    establishedAtMs: entry.establishedAtMs,
+  }
+  return { record: { ...previous, coHolders: [...holders, holder] }, change: 'co-holder' }
 }
 
 /**
@@ -204,11 +290,6 @@ export function isOfficialRecordCandidate(candidate: RecordCandidate): boolean {
   if (candidate.status !== 'landed') return false
   if (candidate.administrativeStatus) return false
   return Number.isInteger(candidate.distanceHalfMeters) && candidate.distanceHalfMeters > 0
-}
-
-/** Przy identycznej długości rekord nie nadpisuje wcześniejszej daty. */
-export function improvesRecord(previous: StoredRecord | undefined, distanceHalfMeters: number): boolean {
-  return previous === undefined || distanceHalfMeters > previous.distanceHalfMeters
 }
 
 // --- Walidacja przyjmowanego zapisu -----------------------------------------
@@ -473,6 +554,7 @@ export function validateStoredReplay(raw: unknown): ValidationResult<StoredRepla
     }
     if (!isNonEmptyString(sample.phase)) return { ok: false, reason: 'próbka bez fazy' }
   }
+  if (raw.kind !== 'auto' && raw.kind !== 'record') return { ok: false, reason: 'nieznany rodzaj replaya' }
   if (!isPlainObject(raw.recordedResult) || !isNonEmptyString(raw.recordedResult.resultId)) {
     return { ok: false, reason: 'replay bez zapisanego wyniku' }
   }
