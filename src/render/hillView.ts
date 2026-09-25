@@ -2446,6 +2446,7 @@ export type JumperPose =
   | 'supportOne'
   | 'supportTwo'
   | 'outrun'
+  | 'brake'
   | 'fall'
 
 export const JUMPER_ART_VERSION = 'pkg008-jumper-solid-silhouette-8'
@@ -2470,6 +2471,9 @@ export const JUMPER_POSE_FRAME_COUNTS: Readonly<Record<JumperPose, number>> = {
   supportOne: 3,
   supportTwo: 3,
   outrun: 3,
+  // P30: końcowa sylwetka zatrzymania (symulacja kończy się w tym kroku, więc
+  // widoczna jest jedna klatka — pod planszą wyniku, zamiast klatki cyklu odjazdu).
+  brake: 1,
   fall: 3,
 }
 
@@ -2489,6 +2493,7 @@ export function supportTwoVariant(actor: SceneActor): SupportTwoVariant {
 
 function jumperPose(actor: SceneActor): JumperPose {
   if (actor.phase === 'Fall' || actor.phase === 'FallSettled') return 'fall'
+  if (actor.phase === 'FinishLine') return 'brake'
   if (actor.phase === 'GateGreen') return 'gate'
   if (actor.phase === 'Inrun' && recentEvent(actor, 'gateOpen', 27) !== null) return 'gatePush'
   if (actor.phase === 'Inrun') return 'inrun'
@@ -2565,7 +2570,7 @@ function jumperFrame(
     // (powolne, powtarzalne kołysanie kuca/postawy), nie po kącie.
     return frame(reducedMotion ? 1 : Math.floor(actor.tick / 10) % count)
   }
-  if (pose === 'gate') return frame(0)
+  if (pose === 'gate' || pose === 'brake') return frame(0)
   if (pose === 'gatePush') {
     const age = recentEvent(actor, 'gateOpen', 27) ?? 0
     return frame(Math.min(count - 1, Math.floor(age / 7)))
@@ -2808,6 +2813,10 @@ const POSE_FRAMES: Record<JumperPose, readonly PoseShape[]> = {
     pose([-12, 17], [0, 1.2], [1.6, 6.2], [0.5, 10.8], [0.4, 16.8], [0.9, 20.0], [-1.4, 14.2], [-2.4, 11.2]),
     pose([-12, 17], [0, 1.2], [2.0, 6.0], [0.9, 10.2], [1.0, 16.0], [1.5, 19.2], [-0.8, 13.6], [-1.9, 10.7]),
     pose([-12, 17], [0, 1.2], [1.7, 6.1], [0.6, 10.6], [0.5, 16.5], [1.0, 19.7], [-1.2, 14.0], [-2.2, 11.0]),
+  ],
+  // Zatrzymanie: biodra lekko w tył, kolana ugięte, ręce z przodu dla równowagi.
+  brake: [
+    pose([-12, 17], [0, 1.2], [2.4, 5.4], [-1.2, 9.6], [-1.4, 15.4], [-0.8, 18.6], [2.0, 12.8], [4.0, 10.8]),
   ],
   fall: [
     pose([-10, 19], [0, 1.2], [-2.4, 4.5], [-6.4, 6.4], [-11.2, 8.5], [-14.6, 9.5], [-8.8, 9.8], [-5.0, 10.7]),
@@ -3132,7 +3141,7 @@ function jumperFrameBitmap(
   return bitmap
 }
 
-const DEBUG_POSE_ORDER: readonly JumperPose[] = ['gate', 'gatePush', 'inrun', 'takeoff', 'flight', 'landingPrep', 'supportOne', 'supportTwo', 'outrun', 'fall']
+const DEBUG_POSE_ORDER: readonly JumperPose[] = ['gate', 'gatePush', 'inrun', 'takeoff', 'flight', 'landingPrep', 'supportOne', 'supportTwo', 'outrun', 'brake', 'fall']
 
 export type DebugPoseSheet = {
   readonly canvas: HTMLCanvasElement
@@ -3309,6 +3318,7 @@ function drawProductionJumper(context: CanvasRenderingContext2D, view: WorldView
     supportOne: 2,
     supportTwo: 2,
     outrun: 2,
+    brake: 2,
     fall: 2,
   }
   // Wygaszanie korekty tylko w fazach powietrznych. Na rozbiegu `surfaceYAtX`

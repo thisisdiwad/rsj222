@@ -177,6 +177,8 @@ export type CompetitionVariant = {
   readonly seed?: number
   /** Nagłówek ekranów, np. „PUCHAR 2/4”. */
   readonly label?: string
+  /** P29: konkurs sezonu/kalendarza — skok liczy się też do rekordu zestawu. */
+  readonly setKey?: string
   /** P26–P28: gotowa obsada (drużyny albo uczestnicy King of the Hill). */
   readonly roster?: {
     readonly entrants: readonly CompetitionEntrant[]
@@ -349,6 +351,7 @@ export class CompetitionSession {
   /** Standardowy konkurs: stała bazowa; sezon: baza XOR seed konkursu. */
   private readonly aiBaseSeed: number
   private readonly variantLabel: string | null
+  private readonly setKey: string | null
   /** Pole wiatru bieżącej próby: ta sama instancja służy prognozie i skokowi. */
   private currentWindField: WindField | null = null
 
@@ -372,6 +375,7 @@ export class CompetitionSession {
       ? restored.seeds.ai
       : variant.seed === undefined ? AI_BASE_SEED : (AI_BASE_SEED ^ variant.seed) >>> 0
     this.variantLabel = variant.label ?? null
+    this.setKey = variant.setKey ?? null
     this.revision = restored ? restored.revision : 0
     this.stats = restored ? restored.stats : EMPTY_SESSION_STATS
     this.safeGateCeiling = hill.spec.safety.referenceGateNumber
@@ -744,11 +748,15 @@ export class CompetitionSession {
     }
     const recordCandidate: RecordCandidate | null = result
       ? {
-          context: 'competition',
+          // King of the Hill jest rozrywkowy: osobna kategoria, nie oficjalny rekord.
+          context: this.state.format === 'koth' ? 'fun' : 'competition',
           status: result.status,
           administrativeStatus: null,
           distanceHalfMeters: result.distanceHalfMeters,
           versions: result.versions,
+          setKey: this.setKey,
+          participantName: entrantById(this.state, result.participantId)?.name ?? result.participantId,
+          hillId: this.hill.spec.id,
         }
       : null
     this.onCommit?.({ session: this.toStoredSession(Date.now()), result, recordCandidate, replay })

@@ -101,7 +101,8 @@ async function settings(page: Page, confirm = 'Enter'): Promise<void> {
 }
 
 async function row(page: Page, target: string): Promise<void> {
-  for (let index = 0; index < 12 && (await state(page)).selectedRow !== target; index += 1) {
+  // PKG-016: 15 wierszy ustawień (doszły suwaki efektów, publiczności i muzyki).
+  for (let index = 0; index < 15 && (await state(page)).selectedRow !== target; index += 1) {
     await page.keyboard.press('ArrowDown')
   }
   expect((await state(page)).selectedRow).toBe(target)
@@ -113,6 +114,9 @@ async function rebind(page: Page, target: string, code: string): Promise<void> {
   await expect.poll(async () => (await state(page)).captureTarget).toBe(target)
   await page.keyboard.press(code)
   await expect.poll(async () => (await state(page)).captureTarget).toBeNull()
+  // Zapis ustawień jest asynchroniczny (IndexedDB); przeładowanie przed jego
+  // zakończeniem gubiłoby ostatnią zmianę — czekamy na potwierdzenie gry.
+  await expect.poll(async () => (await state(page)).message).toBe('USTAWIENIA ZAPISANE')
 }
 
 test('blur during settings key capture cancels capture without hiding a pause', async ({ page }) => {

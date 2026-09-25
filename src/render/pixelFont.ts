@@ -67,6 +67,19 @@ const GLYPHS: Readonly<Record<string, Glyph>> = {
   '→': ['00000', '00100', '00010', '11111', '00010', '00100', '00000'],
   '↑': ['00100', '01110', '10101', '00100', '00100', '00100', '00000'],
   '↓': ['00000', '00100', '00100', '00100', '10101', '01110', '00100'],
+  // P30: interpunkcja, która wcześniej wychodziła jako „?” (np. „=”, „…”).
+  '=': ['00000', '00000', '11111', '00000', '11111', '00000', '00000'],
+  ';': ['00000', '00110', '00110', '00000', '00110', '00110', '00100'],
+  '"': ['01010', '01010', '10100', '00000', '00000', '00000', '00000'],
+  '„': ['00000', '00000', '00000', '00000', '01010', '01010', '10100'],
+  '”': ['01010', '01010', '10100', '00000', '00000', '00000', '00000'],
+  '–': ['00000', '00000', '00000', '01110', '00000', '00000', '00000'],
+  '…': ['00000', '00000', '00000', '00000', '00000', '00000', '10101'],
+  '_': ['00000', '00000', '00000', '00000', '00000', '00000', '11111'],
+  '*': ['00000', '10101', '01110', '11111', '01110', '10101', '00000'],
+  '&': ['01100', '10010', '10100', '01000', '10101', '10010', '01101'],
+  '|': ['00100', '00100', '00100', '00100', '00100', '00100', '00100'],
+  '@': ['01110', '10001', '10111', '10101', '10111', '10000', '01110'],
   // Polskie znaki diakrytyczne — bazowa litera z doklejonym akcentem/ogonkiem
   // w dodatkowym wierszu, żeby nie zmieniać 7-wierszowej siatki reszty liter.
   Ą: ['01110', '10001', '10001', '11111', '10001', '10001', '10001', '00011'],
@@ -81,6 +94,11 @@ const GLYPHS: Readonly<Record<string, Glyph>> = {
 }
 
 export type PixelTextAlign = 'left' | 'center' | 'right'
+
+/** P30: czy znak (po zamianie na wielkie litery) ma własny glif — bez zastępczego „?”. */
+export function hasPixelGlyph(char: string): boolean {
+  return Object.hasOwn(GLYPHS, char.toUpperCase())
+}
 
 export function measurePixelText(text: string, scale = 2): number {
   if (!Number.isInteger(scale) || scale < 1) throw new Error('Skala fontu bitmapowego musi być dodatnią liczbą całkowitą.')

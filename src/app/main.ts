@@ -67,6 +67,8 @@ import {
   type SeasonSetup,
 } from '../sport/season'
 import { drawCalendarEditor, drawKoBracket, drawSeasonHub, type SeasonHubRow } from '../render/seasonView'
+import { drawRecordsScreen, type RecordsColumn, type RecordsScreenView, type RecordsTab } from '../render/recordsView'
+import { humanJumpStats, seasonStats } from '../sport/stats'
 import { drawKothBoard, drawKothSetup, drawTeamSetup, drawTeamTable, type SetupRow } from '../render/teamView'
 import {
   buildKothEntrants,
@@ -89,24 +91,27 @@ import {
   drawWithdrawalConfirmation,
 } from '../render/competitionView'
 import {
-  commitAttempt, countStore, loadCalendar, loadGameSettings, loadLatestReplay, loadOfficialRecord, loadSeasons, loadSession,
+  commitAttempt, commitTrainingJump, countStore, loadRecords, loadReplay, loadResults, loadCalendar, loadGameSettings, loadLatestReplay, loadOfficialRecord, loadSeasons, loadSession,
   openGameDatabase, saveCalendar, saveGameSettings, saveSeason,
 } from '../storage/db'
 import { MODERN_RULES } from '../sport/scoring'
 import { physicsParamsForHill } from '../simulation/params'
 import { createOwnerId, SessionLease, LEASE_CHANNEL_NAME } from '../storage/lease'
 import {
-  approximateBytes, CALENDAR_SCHEMA_VERSION, recordKey, SEASON_SCHEMA_VERSION,
-  type StoredRecord, type StoredReplay, type StoredSeason, type StoredSession,
+  approximateBytes, CALENDAR_SCHEMA_VERSION, recordCategoryOf, recordKey, SEASON_SCHEMA_VERSION,
+  type RecordCategory, type StoredRecord, type StoredReplay, type StoredResult, type StoredSeason, type StoredSession,
 } from '../storage/schema'
 import { ReplayPlayer, replayVisualsCompatible } from '../replay/player'
+import { JumpRecorder } from '../replay/recorder'
+import { AudioDirector } from '../audio/audioDirector'
+import type { MusicId } from '../audio/synth'
 import { drawReplayScreen } from '../render/replayView'
 import { drawSettingsScreen, SETTINGS_ROWS, type BindingRow, type SettingsRow } from '../render/settingsView'
 import { DEFAULT_SETTINGS, normalizeSettings, rebindSettings, resolveBoundAction, type GameSettings } from '../settings/settings'
 
 type Screen = 'title' | 'menu' | 'settings' | 'jump' | 'competition-setup' | 'competition' | 'replay'
-  | 'season' | 'calendar-editor' | 'ko-bracket' | 'mode-setup'
-type MenuSelection = 'training' | 'competition' | 'replay' | 'settings' | 'cup' | 'ko' | 'team' | 'superteam' | 'koth'
+  | 'season' | 'calendar-editor' | 'ko-bracket' | 'mode-setup' | 'records'
+type MenuSelection = 'training' | 'competition' | 'replay' | 'settings' | 'cup' | 'ko' | 'team' | 'superteam' | 'koth' | 'records'
 type ModeFormat = TeamFormat | 'koth'
 type HubRow = 'play' | 'calendar' | 'profiles' | 'difficulty' | 'edit' | 'bracket' | 'abandon'
 type SaveState = 'idle' | 'saving' | 'saved' | 'failed' | 'readonly'
@@ -226,6 +231,20 @@ type DebugSnapshot = {
     message: string
     resumable: boolean
     running: boolean
+  }
+  audio: {
+    running: boolean
+    voices: number
+    loops: string[]
+    music: string | null
+    played: number
+  }
+  records: {
+    tab: RecordsTab
+    focus: number
+    loading: boolean
+    rows: string[][]
+    message: string
   }
 }
 
@@ -358,53 +377,15 @@ let trainingCompletedAttempts = 0
 let trainingBestDistanceHalfMeters = 0
 let trainingBestTotalTenths = 0
 let trainingResult: TrainingJumpResult | null = null
+let trainingRecorder: JumpRecorder | null = null
 let technicalView = false
 let snowEnabled = true
 let competitionProfileCount = 1
 let competitionDifficulty: AiDifficulty = 'normal'
 let competition: CompetitionSession | null = null
 
-class AudioGate {
-  private audioContext: AudioContext | null = null
-
-  async unlock(): Promise<void> {
-    const AudioConstructor = window.AudioContext
-    if (!AudioConstructor) return
-    this.audioContext ??= new AudioConstructor()
-    await this.audioContext.resume()
-    // Do not play at default volume before a persisted mute has been loaded.
-    if (persistenceReady || saveState === 'failed') this.play('confirm')
-  }
-
-  play(kind: 'confirm' | 'takeoff' | 'contact' | 'fall' | 'result'): void {
-    const audioContext = this.audioContext
-    if (!audioContext || audioContext.state !== 'running' || settings.volume === 0) return
-    try {
-      const oscillator = audioContext.createOscillator()
-      const gain = audioContext.createGain()
-      const now = audioContext.currentTime
-      const sound = {
-        confirm: { from: 220, to: 280, duration: 0.07, volume: 0.025, wave: 'square' as OscillatorType },
-        takeoff: { from: 165, to: 430, duration: 0.09, volume: 0.035, wave: 'square' as OscillatorType },
-        contact: { from: 150, to: 92, duration: 0.1, volume: 0.04, wave: 'triangle' as OscillatorType },
-        fall: { from: 90, to: 42, duration: 0.18, volume: 0.055, wave: 'sawtooth' as OscillatorType },
-        result: { from: 330, to: 495, duration: 0.14, volume: 0.03, wave: 'square' as OscillatorType },
-      }[kind]
-      oscillator.type = sound.wave
-      oscillator.frequency.setValueAtTime(sound.from, now)
-      oscillator.frequency.exponentialRampToValueAtTime(sound.to, now + sound.duration)
-      gain.gain.setValueAtTime(sound.volume * settings.volume / 100, now)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + sound.duration)
-      oscillator.connect(gain).connect(audioContext.destination)
-      oscillator.start(now)
-      oscillator.stop(now + sound.duration)
-    } catch {
-      // Dźwięk jest dodatkiem. Niepełne lub zablokowane Web Audio nie wpływa na grę.
-    }
-  }
-}
-
-const audio = new AudioGate()
+/** P31: jeden manager dźwięku; kontekst powstaje dopiero z gestu gracza (autoplay). */
+const audio = new AudioDirector(() => (typeof window.AudioContext === 'function' ? new window.AudioContext() : null))
 const audioEventCursor = new WeakMap<JumpSimulation, number>()
 const resultSoundPlayed = new WeakSet<JumpSimulation>()
 
@@ -412,8 +393,10 @@ function playJumpAudio(sim: JumpSimulation): void {
   const from = audioEventCursor.get(sim) ?? 0
   for (const event of sim.events.slice(from)) {
     if (event.type === 'takeoffEdge') audio.play('takeoff')
-    else if (event.type === 'contact') audio.play('contact')
+    else if (event.type === 'contact') audio.play(sim.landingStyle === 'telemark' ? 'telemark' : sim.landingStyle === 'parallel' ? 'parallel' : 'contact')
+    else if (event.type === 'handSupport') audio.play('contact')
     else if (event.type === 'fall') audio.play('fall')
+    else if (event.type === 'outrunStopped' || event.type === 'finishLine') audio.play('brake')
   }
   audioEventCursor.set(sim, sim.events.length)
 }
@@ -422,6 +405,61 @@ function playResultAudio(sim: JumpSimulation): void {
   if (resultSoundPlayed.has(sim)) return
   resultSoundPlayed.add(sim)
   audio.play('result')
+  // Publiczność reaguje tylko w konkursie; trening jest cichy.
+  if (screen === 'competition' && sim.outcome?.status === 'landed') audio.play('cheer')
+}
+
+let lastStartPhase: string | null = null
+const podiumPlayed = new WeakSet<CompetitionSession>()
+
+/** Muzyka ekranu: menu, konfiguracja, podium; w trakcie skoku domyślnie cisza. */
+function musicForScreen(): MusicId | null {
+  if (screen === 'menu' || screen === 'settings' || screen === 'records') return 'menu'
+  if (screen === 'competition-setup' || screen === 'mode-setup' || screen === 'season'
+    || screen === 'calendar-editor' || screen === 'ko-bracket') return 'setup'
+  if (screen === 'competition' && competition?.view === 'finished') return 'podium'
+  return null
+}
+
+/** Wołane co klatkę: poziomy, pauza, pętle zależne od prędkości, światła startu, muzyka. */
+function updateAudio(): void {
+  const ready = persistenceReady || saveState === 'failed'
+  audio.setLevels({ master: settings.volume, sfx: settings.sfxVolume, crowd: settings.crowdVolume, music: settings.musicVolume })
+  audio.setPaused(paused || !ready || fullscreenTransitioning)
+  if (!ready) return
+  audio.setMusic(musicForScreen())
+
+  const sim = screen === 'jump' ? jump : screen === 'competition' && competition?.view === 'jump' ? competition.jump : null
+  const phase = sim?.phase ?? null
+  const speed = Math.min(1, (sim?.speedKmh ?? 0) / 100)
+  const sliding = phase === 'Inrun' || phase === 'Takeoff' || phase === 'Contact' || phase === 'Outrun'
+  const flying = phase === 'Flight' || phase === 'LandingPrep'
+  audio.setLoop('slide', sliding ? 0.25 + 0.75 * speed : 0, speed)
+  audio.setLoop('wind', flying ? 0.3 + 0.7 * speed : 0, speed)
+  audio.setLoop('crowd', screen === 'competition' && competition && competition.view !== 'finished' ? (competition.view === 'jump' ? 0.5 : 0.3) : 0)
+
+  const startPhase = screen === 'competition' && competition?.view === 'start' ? competition.startProcedure?.phase ?? null : null
+  if (startPhase !== lastStartPhase) {
+    if (startPhase === 'red') audio.play('lightRed')
+    else if (startPhase === 'yellow') audio.play('lightYellow')
+    else if (startPhase === 'green') audio.play('lightGreen')
+    lastStartPhase = startPhase
+  }
+  if (screen === 'competition' && competition?.view === 'finished' && !podiumPlayed.has(competition)) {
+    podiumPlayed.add(competition)
+    audio.play('podium')
+  }
+}
+
+/** Dźwięki interfejsu na ekranach menu/tabel (nie w trakcie skoku). */
+function playUiSound(event: KeyboardEvent): void {
+  if (event.repeat || paused) return
+  const gameplay = screen === 'jump' || (screen === 'competition' && (competition?.view === 'jump' || competition?.view === 'start'))
+  if (gameplay || screen === 'title' || screen === 'replay') return
+  if (event.code === 'ArrowUp' || event.code === 'ArrowDown' || event.code === 'ArrowLeft' || event.code === 'ArrowRight'
+    || event.code === 'PageUp' || event.code === 'PageDown') audio.play('select')
+  else if (event.code === 'Enter' || event.code === settings.menuConfirm) audio.play('confirm')
+  else if (event.code === 'Backspace' || event.code === settings.menuBack) audio.play('back')
 }
 
 function requireElement<T extends Element>(id: string): T {
@@ -451,14 +489,16 @@ function usesFixedTicks(): boolean {
 }
 
 /** PKG-014/015: nowe tryby dopisane na końcu, więc dotychczasowe skróty menu (↓×2, ↓×3) nie zmieniają celu. */
-const MENU_ORDER: readonly MenuSelection[] = ['training', 'competition', 'replay', 'settings', 'cup', 'ko', 'team', 'superteam', 'koth']
+const MENU_ORDER: readonly MenuSelection[] = ['training', 'competition', 'replay', 'settings', 'cup', 'ko', 'team', 'superteam', 'koth', 'records']
 const MENU_NAMES: Readonly<Record<MenuSelection, string>> = {
   training: 'Trening', competition: 'Konkurs standardowy', replay: 'Ostatnia powtórka', settings: 'Ustawienia',
   cup: 'Puchar sezonu', ko: 'Turniej KO', team: 'Konkurs drużynowy', superteam: 'Super Team', koth: 'King of the Hill',
+  records: 'Rekordy i statystyki',
 }
 const SETTINGS_NAMES: Readonly<Record<SettingsRow, string>> = {
   takeoff: 'Wybicie', left: 'Lot w lewo', right: 'Lot w prawo', telemark: 'Telemark', parallel: 'Dwie nogi',
-  menuConfirm: 'Potwierdź', menuBack: 'Wstecz', volume: 'Głośność', scaleMode: 'Skala',
+  menuConfirm: 'Potwierdź', menuBack: 'Wstecz', volume: 'Głośność', sfxVolume: 'Efekty', crowdVolume: 'Publiczność',
+  musicVolume: 'Muzyka', scaleMode: 'Skala',
   largeText: 'Duży tekst', reducedMotion: 'Mniej ruchu', reset: 'Przywróć domyślne',
 }
 
@@ -531,6 +571,17 @@ function setScreenReaderStatus(): void {
       : `Edycja własnego kalendarza: ${editorEvents.length} z 40 konkursów. Pozycja ${editorFocus + 1}: ${event ? hillShortLabel(event.hillId) : 'brak'}. `
         + `${editorMessage} Góra i dół wybiera pozycję, lewo i prawo zmienia skocznię, A dodaje, X usuwa, nawiasy kwadratowe przesuwają, Enter zapisuje, Backspace wraca.`
     canvas.setAttribute('aria-label', 'Retro Ski Jumping — edycja kalendarza')
+    return
+  }
+
+  if (screen === 'records') {
+    const view = recordsScreenView()
+    const row = view.rows[view.focusedRow]
+    screenReaderStatus.textContent = paused
+      ? `Pauza: ${pauseReason}. Enter wznawia.`
+      : `Rekordy i statystyki, zakładka ${view.tab === 'records' ? 'rekordy' : view.tab === 'stats' ? 'statystyki' : 'archiwum wersji'}. `
+        + `${row ? row.cells.filter(Boolean).join(', ') : view.emptyText}. ${view.message}`
+    canvas.setAttribute('aria-label', 'Retro Ski Jumping — rekordy i statystyki')
     return
   }
 
@@ -638,6 +689,7 @@ function startAttempt(resetTraining: boolean): void {
     manual: trainingGateOverride !== null,
   }
   jump = new JumpSimulation({ hill, gateNumber: attemptGate, windField })
+  trainingRecorder = createTrainingRecorder(jump)
   trainingResult = null
   technicalView = false
   screen = 'jump'
@@ -670,6 +722,7 @@ function retuneTrainingGate(nextGate: number): void {
     manual: true,
   }
   jump = new JumpSimulation({ hill, gateNumber: nextGate, windField })
+  trainingRecorder = createTrainingRecorder(jump)
   trainingResult = null
   tick = 0
   journal = []
@@ -683,9 +736,54 @@ function retuneTrainingGate(nextGate: number): void {
   canvas.focus()
 }
 
+/** P29: skok treningowy nagrywany jak konkursowy — replay trafia do rekordu treningowego. */
+function createTrainingRecorder(sim: JumpSimulation): JumpRecorder {
+  const profile = LOCAL_PROFILES[0]!
+  return new JumpRecorder(sim, {
+    sessionId: `training-${hill.spec.id}`,
+    competitionId: 'training',
+    roundId: 'training',
+    participantId: profile.id,
+    participantName: profile.name,
+    juryGateNumber: sim.gateNumber,
+    coachRequested: false,
+  })
+}
+
+/** Rekord treningowy: osobna kategoria (Q-FIS-15), zapis poza sesją konkursu. */
+function saveTrainingRecord(sim: JumpSimulation, result: TrainingJumpResult): void {
+  const recorder = trainingRecorder
+  trainingRecorder = null
+  const db = database
+  if (!db || result.status !== 'landed') return
+  const nowMs = Date.now()
+  const profile = LOCAL_PROFILES[0]!
+  const resultId = `training-${hill.spec.id}-${nowMs}-${result.attemptNumber}`
+  const replay = recorder ? { ...recorder.finish(result, nowMs), id: resultId } : null
+  const candidate = {
+    context: 'training' as const,
+    status: result.status,
+    distanceHalfMeters: result.distanceHalfMeters,
+    versions: result.versions,
+    participantName: profile.name,
+    hillId: sim.hill.spec.id,
+  }
+  saveChain = saveChain
+    .then(() => commitTrainingJump(db, { candidate, result: { resultId, participantId: profile.id, totalTenths: result.totalTenths }, replay, nowMs }))
+    .then((changes) => {
+      if (changes.some((change) => change.change === 'new')) {
+        lifecycleMessage = `NOWY REKORD TRENINGU: ${(result.distanceHalfMeters / 2).toFixed(1).replace('.', ',')} M`
+        audio.play('record')
+        setScreenReaderStatus()
+      }
+    })
+    .catch(() => undefined)
+}
+
 function settleTrainingResult(): void {
   if (!jump?.outcome || trainingResult) return
   trainingResult = createTrainingJumpResult(jump, trainingAttempt)
+  saveTrainingRecord(jump, trainingResult)
   playResultAudio(jump)
   trainingCompletedAttempts += 1
   trainingBestDistanceHalfMeters = Math.max(trainingBestDistanceHalfMeters, trainingResult.distanceHalfMeters)
@@ -941,16 +1039,10 @@ async function runCommit(request: CommitRequest): Promise<void> {
     savedRejectedReason = null
   }
   if (outcome.applied) storedResultCount += 1
-  if (outcome.recordUpdated && request.recordCandidate) {
-    officialRecord = {
-      key: recordKey(request.recordCandidate.versions),
-      distanceHalfMeters: request.recordCandidate.distanceHalfMeters,
-      totalTenths: request.result?.totalTenths ?? 0,
-      participantId: request.result?.participantId ?? '',
-      resultId: request.result?.resultId ?? '',
-      establishedAtMs: Date.now(),
-      versions: request.recordCandidate.versions,
-    }
+  const official = outcome.recordChanges.find((change) => change.category === 'competition')
+  if (official && official.record.versions.hill === hill.spec.hillVersion) officialRecord = official.record
+  if (outcome.recordChanges.some((change) => change.change === 'new' && request.result?.participantId.startsWith('local-'))) {
+    audio.play('record')
   }
   if (request.replay) {
     latestReplay = request.replay
@@ -983,9 +1075,13 @@ function attachPersistence(session: CompetitionSession): void {
 }
 
 function openLastReplay(): boolean {
-  if (!latestReplay) return false
-  const replayHillId = latestReplay.initialState.hillId
-  const blocked = blockedReplayNotice(latestReplay)
+  return latestReplay ? openReplay(latestReplay) : false
+}
+
+/** Odtwarza dowolny zapisany replay (ostatni skok albo kopia rekordu, P29). */
+function openReplay(target: StoredReplay): boolean {
+  const replayHillId = target.initialState.hillId
+  const blocked = blockedReplayNotice(target)
   if (blocked) {
     replayPlayer = null
     replayVisualsOk = false
@@ -996,16 +1092,16 @@ function openLastReplay(): boolean {
     return false
   }
   const replaySpec = PLAYABLE_HILL_SPECS.find((spec) => spec.id === replayHillId)
-  replayPlayer = new ReplayPlayer(latestReplay)
-  replayStorageBytes = approximateBytes(latestReplay)
+  replayPlayer = new ReplayPlayer(target)
+  replayStorageBytes = approximateBytes(target)
   replayHill = replaySpec ? buildHillById(replaySpec.id) : hill
   replayHillView = buildView(replayHill)
   replayVisualsOk = Boolean(replaySpec)
-    && replayVisualsCompatible(latestReplay, replayHill.spec.hillVersion, replayHill.spec.id)
+    && replayVisualsCompatible(target, replayHill.spec.hillVersion, replayHill.spec.id)
   replayNotice = replayVisualsOk
     ? ''
     : debugEnabled
-      ? `BRAK ZGODNYCH DANYCH WIZUALNYCH (${latestReplay.versions.hill}) — BEZ PRZELICZANIA NOWĄ FIZYKĄ`
+      ? `BRAK ZGODNYCH DANYCH WIZUALNYCH (${target.versions.hill}) — BEZ PRZELICZANIA NOWĄ FIZYKĄ`
       : 'TA POWTÓRKA POCHODZI Z INNEGO WYDANIA GRY'
   screenBeforeReplay = screen
   screen = 'replay'
@@ -1271,6 +1367,7 @@ function seasonHubView() {
     standings: visible.map((row) => ({ rank: row.rank, name: row.name, value: format(row.value), human: humanIds.has(row.participantId) })),
     events,
     setLine: `KLUCZ ${key} • UKOŃCZONE ${sameSet.length}`,
+    largeText: settings.largeText,
     message: seasonMessage || (customCalendarProblem && seasonFormat === 'cup' ? `WŁASNY KALENDARZ: ${customCalendarProblem.toUpperCase()}` : defaultMessage),
   }
 }
@@ -1446,7 +1543,7 @@ async function startSeasonEvent(): Promise<void> {
       enterDown,
       restorable,
       sessionId,
-      { format: seasonFormat === 'four-hills' ? 'ko' : 'standard', seed: eventSeed(season.setKey, index), label },
+      { format: seasonFormat === 'four-hills' ? 'ko' : 'standard', seed: eventSeed(season.setKey, index), label, setKey: season.setKey },
     )
     competition.setRoundSummaryVisibleRows(settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS)
     if (!restorable && loaded.kind === 'ok') competition.revision = loaded.session.revision
@@ -2092,14 +2189,251 @@ function drawModeSetup(): void {
   })
 }
 
+// --- PKG-016 / P29: rekordy, statystyki i archiwum wersji ---------------------------
+
+const RECORD_CATEGORY_LABEL: Readonly<Record<RecordCategory, string>> = {
+  training: 'TRENING',
+  competition: 'KONKURS',
+  fun: 'ROZRYWKA',
+  set: 'ZESTAW',
+}
+const RECORDS_VISIBLE_ROWS = 13
+const RECORDS_TABS: readonly RecordsTab[] = ['records', 'stats', 'archive']
+
+let recordsTab: RecordsTab = 'records'
+let recordsFocus = 0
+let recordsMessage = ''
+let recordsLoading = false
+let recordsData: {
+  records: readonly StoredRecord[]
+  results: readonly StoredResult[]
+  seasons: readonly StoredSeason[]
+} = { records: [], results: [], seasons: [] }
+
+function currentVersionsFor(spec: (typeof PLAYABLE_HILL_SPECS)[number]) {
+  return { rules: MODERN_RULES.version, physics: physicsParamsForHill(spec).physicsVersion, hill: spec.hillVersion }
+}
+
+function recordHillId(record: StoredRecord): string | null {
+  return record.hillId ?? PLAYABLE_HILL_SPECS.find((spec) => spec.hillVersion === record.versions.hill)?.id ?? null
+}
+
+function isCurrentRecord(record: StoredRecord): boolean {
+  return PLAYABLE_HILL_SPECS.some((spec) => recordKey(currentVersionsFor(spec)) === recordKey(record.versions))
+}
+
+function shortDate(ms: number): string {
+  const date = new Date(ms)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${String(date.getFullYear()).slice(2)}`
+}
+
+function holderText(record: StoredRecord): string {
+  const extra = record.coHolders?.length ? ` +${record.coHolders.length}` : ''
+  return `${record.participantName ?? record.participantId}${extra}`
+}
+
+function metresText(halfMeters: number): string {
+  return `${(halfMeters / 2).toFixed(1).replace('.', ',')} M`
+}
+
+type RecordRow = { readonly cells: readonly string[]; readonly human: boolean; readonly record: StoredRecord | null }
+
+function recordRows(): readonly RecordRow[] {
+  const rows: RecordRow[] = []
+  const current = recordsData.records.filter(isCurrentRecord)
+  for (const spec of PLAYABLE_HILL_SPECS) {
+    const label = hillShortLabel(spec.id).replace(/ K\d+\/HS\d+$/, '')
+    const forHill = current.filter((record) => recordHillId(record) === spec.id)
+    const byCategory = (category: RecordCategory) => forHill.filter((record) => recordCategoryOf(record) === category)
+    for (const category of ['training', 'competition', 'fun'] as const) {
+      const record = byCategory(category)[0] ?? null
+      rows.push({
+        record,
+        human: Boolean(record?.participantId.startsWith('local-')),
+        cells: record
+          ? [label, RECORD_CATEGORY_LABEL[category], metresText(record.distanceHalfMeters), holderText(record), shortDate(record.establishedAtMs), record.replayId ? 'R' : '']
+          : [label, RECORD_CATEGORY_LABEL[category], '—', '', '', ''],
+      })
+    }
+    for (const record of byCategory('set')) {
+      rows.push({
+        record,
+        human: record.participantId.startsWith('local-'),
+        cells: [label, `ZESTAW ${record.scope ?? ''}`, metresText(record.distanceHalfMeters), holderText(record), shortDate(record.establishedAtMs), record.replayId ? 'R' : ''],
+      })
+    }
+  }
+  return rows
+}
+
+function archiveRows(): readonly RecordRow[] {
+  return recordsData.records
+    .filter((record) => !isCurrentRecord(record))
+    .sort((left, right) => right.establishedAtMs - left.establishedAtMs)
+    .map((record) => {
+      const hillId = recordHillId(record)
+      const category = recordCategoryOf(record)
+      return {
+        record,
+        human: record.participantId.startsWith('local-'),
+        cells: [
+          hillId ? hillShortLabel(hillId).replace(/ K\d+\/HS\d+$/, '') : '?',
+          category === 'set' ? `ZESTAW ${record.scope ?? ''}` : RECORD_CATEGORY_LABEL[category],
+          metresText(record.distanceHalfMeters),
+          holderText(record),
+          `${record.versions.hill} / ${record.versions.physics}`,
+        ],
+      }
+    })
+}
+
+function statsRows(): readonly RecordRow[] {
+  const rows = humanJumpStats(recordsData.results.map((entry) => entry.result))
+  return rows.map((row) => ({
+    record: null,
+    human: true,
+    cells: [
+      LOCAL_PROFILES.find((profile) => profile.id === row.participantId)?.name ?? row.participantId,
+      String(row.jumps),
+      String(row.landed),
+      String(row.falls),
+      row.bestDistanceHalfMeters > 0 ? metresText(row.bestDistanceHalfMeters) : '—',
+      (row.bestTotalTenths / 10).toFixed(1).replace('.', ','),
+      row.landed > 0 ? (row.averageTotalTenths / 10).toFixed(1).replace('.', ',') : '—',
+    ],
+  }))
+}
+
+function currentRecordRows(): readonly RecordRow[] {
+  return recordsTab === 'records' ? recordRows() : recordsTab === 'archive' ? archiveRows() : statsRows()
+}
+
+function recordsScreenView(): RecordsScreenView {
+  const rows = currentRecordRows()
+  const focus = Math.min(recordsFocus, Math.max(0, rows.length - 1))
+  const recordColumns: RecordsColumn[] = [
+    { label: 'SKOCZNIA', x: 30, width: 106 },
+    { label: 'KATEGORIA', x: 140, width: 62 },
+    { label: 'DŁUGOŚĆ', x: 204, width: 50, align: 'right' },
+    { label: 'REKORDZISTA', x: 262, width: 118 },
+    { label: 'DATA', x: 386, width: 48 },
+    { label: 'R', x: 442, width: 10 },
+  ]
+  const columns: RecordsColumn[] = recordsTab === 'records' ? recordColumns
+    : recordsTab === 'archive'
+      ? [...recordColumns.slice(0, 4), { label: 'WERSJA SKOCZNI / FIZYKI', x: 386, width: 66 }]
+      : [
+          { label: 'GRACZ', x: 30, width: 110 },
+          { label: 'SKOKI', x: 144, width: 36, align: 'right' },
+          { label: 'USTANE', x: 186, width: 40, align: 'right' },
+          { label: 'UPADKI', x: 232, width: 40, align: 'right' },
+          { label: 'NAJDŁ.', x: 278, width: 62, align: 'right' },
+          { label: 'MAX PKT', x: 346, width: 56, align: 'right' },
+          { label: 'ŚR. PKT', x: 408, width: 44, align: 'right' },
+        ]
+  const seasonNotes = seasonStats(recordsData.seasons).map((row) =>
+    `${row.format === 'cup' ? 'PUCHAR' : 'TURNIEJ KO'}: ${row.started} ROZP. • ${row.completed} UKOŃCZ. • ${row.abandoned} PORZUC. • WYGRANE GRACZY ${row.humanWins} • PODIA ${row.humanPodiums}`)
+  const archived = recordsData.records.filter((record) => !isCurrentRecord(record)).length
+  const notes = recordsTab === 'stats'
+    ? [...seasonNotes, `TRENING W TEJ SESJI: ${trainingCompletedAttempts} SKOKÓW • REKORDY TRENINGU: ZAKŁADKA REKORDY`]
+    : recordsTab === 'records'
+      ? [`TYLKO USTANE SKOKI • TRENING I ROZRYWKA OSOBNO • REMIS: +N WSPÓŁ. • ARCHIWUM: ${archived}`]
+      : ['REKORDY STARYCH WERSJI SKOCZNI, FIZYKI LUB ZASAD — ZACHOWANE, NIE MIESZANE Z BIEŻĄCYMI']
+  const focused = rows[focus]
+  const replayHint = recordsTab !== 'stats' && focused?.record?.replayId ? 'ENTER — POWTÓRKA REKORDU • ' : ''
+  return {
+    tab: recordsTab,
+    subtitle: recordsLoading ? 'WCZYTYWANIE ZAPISU…' : `BIEŻĄCE WERSJE ZASAD ${MODERN_RULES.version.toUpperCase()} • R — ZAPISANA POWTÓRKA`,
+    columns,
+    rows,
+    focusedRow: recordsTab === 'stats' ? -1 : focus,
+    scroll: Math.max(0, focus - RECORDS_VISIBLE_ROWS + 3),
+    visibleRows: settings.largeText ? (recordsTab === 'records' ? 9 : 7) - notes.length : RECORDS_VISIBLE_ROWS - notes.length,
+    large: !settings.largeText ? undefined
+      : recordsTab === 'stats'
+        ? [{ cell: 0, x: 30, width: 190 }, { cell: 1, x: 226, width: 60, align: 'right' }, { cell: 4, x: 300, width: 150, align: 'right' }]
+        : [{ cell: 0, x: 30, width: 150 }, { cell: 1, x: 190, width: 130 }, { cell: 2, x: 330, width: 120, align: 'right' }],
+    emptyText: recordsTab === 'stats' ? 'BRAK SKOKÓW KONKURSOWYCH GRACZY' : recordsTab === 'archive' ? 'BRAK REKORDÓW STARSZYCH WERSJI' : 'BRAK REKORDÓW',
+    notes,
+    message: recordsMessage || `${replayHint}←/→ ZAKŁADKA • ↑/↓ WYBÓR • BACKSPACE — MENU`,
+  }
+}
+
+async function refreshRecords(): Promise<void> {
+  if (!database) {
+    recordsMessage = 'BRAK BAZY ZAPISU — REKORDY NIEDOSTĘPNE'
+    return
+  }
+  recordsLoading = true
+  try {
+    const [records, results, seasons] = await Promise.all([loadRecords(database), loadResults(database), loadSeasons(database)])
+    recordsData = { records, results, seasons: seasons.seasons }
+  } catch (cause) {
+    recordsMessage = `NIE ODCZYTANO REKORDÓW — ${cause instanceof Error ? cause.message : String(cause)}`
+  } finally {
+    recordsLoading = false
+  }
+}
+
+function openRecords(): void {
+  screen = 'records'
+  recordsTab = 'records'
+  recordsFocus = 0
+  recordsMessage = ''
+  input.reset()
+  lastInput = emptyTickInput()
+  setScreenReaderStatus()
+  void saveChain.then(() => refreshRecords()).then(() => setScreenReaderStatus())
+}
+
+async function openRecordReplay(record: StoredRecord): Promise<void> {
+  if (!database || !record.replayId) {
+    recordsMessage = 'TEN REKORD NIE MA ZAPISANEJ POWTÓRKI (SKOK BOTA ALBO ZAPIS SPRZED P29)'
+    return
+  }
+  const replay = await loadReplay(database, record.replayId)
+  if (!replay) {
+    recordsMessage = 'POWTÓRKA REKORDU JEST USZKODZONA LUB NIEDOSTĘPNA'
+    return
+  }
+  if (!openReplay(replay)) recordsMessage = lifecycleMessage
+}
+
+function handleRecordsKey(event: KeyboardEvent): void {
+  if (event.repeat && event.code !== 'ArrowUp' && event.code !== 'ArrowDown') return
+  const rows = currentRecordRows()
+  if (event.code === 'Backspace' || event.code === settings.menuBack) {
+    event.preventDefault()
+    screen = 'menu'
+    lifecycleMessage = 'MENU — WYBIERZ TRYB'
+  } else if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
+    event.preventDefault()
+    const index = RECORDS_TABS.indexOf(recordsTab)
+    recordsTab = RECORDS_TABS[(index + (event.code === 'ArrowRight' ? 1 : -1) + RECORDS_TABS.length) % RECORDS_TABS.length]!
+    recordsFocus = 0
+    recordsMessage = ''
+  } else if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+    event.preventDefault()
+    recordsFocus = Math.max(0, Math.min(rows.length - 1, recordsFocus + (event.code === 'ArrowDown' ? 1 : -1)))
+    recordsMessage = ''
+  } else if (event.code === 'Enter' || event.code === settings.menuConfirm) {
+    event.preventDefault()
+    const record = rows[recordsFocus]?.record
+    if (recordsTab !== 'stats' && record) void openRecordReplay(record).then(() => setScreenReaderStatus())
+  } else {
+    return
+  }
+  setScreenReaderStatus()
+}
+
 function startFromGesture(): void {
   if (screen !== 'title') return
 
   void requestFullscreenSafely()
-  void audio.unlock().then(
-    () => { lifecycleMessage = 'DŹWIĘK: AKTYWNY' },
-    () => { lifecycleMessage = 'DŹWIĘK: NIEDOSTĘPNY — GRA DZIAŁA DALEJ' },
-  )
+  void audio.unlock().then((running) => {
+    lifecycleMessage = running ? 'DŹWIĘK: AKTYWNY' : 'DŹWIĘK: NIEDOSTĘPNY — GRA DZIAŁA DALEJ'
+  })
 
   screen = 'menu'
   paused = false
@@ -2242,9 +2576,10 @@ function closeSettings(): void {
 
 function changeSettingsOption(direction: -1 | 1): void {
   switch (selectedRow) {
-    case 'volume': {
-      const volume = Math.max(0, Math.min(100, settings.volume + direction * 10))
-      if (volume !== settings.volume) updateSettings({ ...settings, volume }, `GŁOŚNOŚĆ ${volume}%`)
+    case 'volume': case 'sfxVolume': case 'crowdVolume': case 'musicVolume': {
+      const key = selectedRow
+      const volume = Math.max(0, Math.min(100, settings[key] + direction * 10))
+      if (volume !== settings[key]) updateSettings({ ...settings, [key]: volume }, `${SETTINGS_NAMES[key].toUpperCase()} ${volume}%`)
       break
     }
     case 'scaleMode':
@@ -2303,7 +2638,8 @@ function handleSettingsKey(event: KeyboardEvent): void {
   if (event.code !== 'Enter' && event.code !== settings.menuConfirm) return
   if (selectedRow === 'reset') {
     updateSettings(normalizeSettings(DEFAULT_SETTINGS), 'PRZYWRÓCONO DOMYŚLNE USTAWIENIA')
-  } else if (selectedRow === 'volume' || selectedRow === 'scaleMode' || selectedRow === 'largeText' || selectedRow === 'reducedMotion') {
+  } else if (selectedRow === 'volume' || selectedRow === 'sfxVolume' || selectedRow === 'crowdVolume' || selectedRow === 'musicVolume'
+    || selectedRow === 'scaleMode' || selectedRow === 'largeText' || selectedRow === 'reducedMotion') {
     changeSettingsOption(1)
   } else {
     captureTarget = selectedRow
@@ -2327,6 +2663,9 @@ function textEntryOrComposing(event: KeyboardEvent): boolean {
 function onKeyDown(event: KeyboardEvent): void {
   if (textEntryOrComposing(event)) return
   if (event.code === 'Enter' && !event.repeat) enterDown = true
+  // Autoplay: jeśli przeglądarka odmówiła dźwięku, każda kolejna akcja gracza próbuje go włączyć.
+  if (screen !== 'title' && !audio.running && !event.repeat) void audio.unlock()
+  playUiSound(event)
 
   if (screen === 'title' && event.code === 'Enter' && !event.repeat) {
     event.preventDefault()
@@ -2430,6 +2769,10 @@ function onKeyDown(event: KeyboardEvent): void {
     handleModeSetupKey(event)
     return
   }
+  if (screen === 'records') {
+    handleRecordsKey(event)
+    return
+  }
 
   if (screen === 'menu') {
     if (!persistenceReady && saveState !== 'failed') return
@@ -2463,6 +2806,7 @@ function onKeyDown(event: KeyboardEvent): void {
       else if (menuSelection === 'cup') openSeasonHub('cup')
       else if (menuSelection === 'ko') openSeasonHub('four-hills')
       else if (menuSelection === 'team' || menuSelection === 'superteam' || menuSelection === 'koth') openModeSetup(menuSelection)
+      else if (menuSelection === 'records') openRecords()
       else if (!openLastReplay() && !latestReplay) {
         lifecycleMessage = 'BRAK ZAPISANEJ POWTÓRKI — ROZEGRAJ SKOK'
         setScreenReaderStatus()
@@ -2672,6 +3016,7 @@ function simulateTick(): void {
   if (screen === 'jump' && jump) {
     const phaseBefore = jump.phase
     jump.step(lastInput)
+    trainingRecorder?.record(lastInput)
     playJumpAudio(jump)
     if (jump.phase !== phaseBefore && !jump.outcome) setScreenReaderStatus()
     settleTrainingResult()
@@ -2748,6 +3093,12 @@ function drawFrame(): void {
     drawSettingsScreen(context, { settings, selectedRow, captureTarget, message: settingsMessage })
     return
   }
+  if (screen === 'records') {
+    drawRecordsScreen(context, recordsScreenView())
+    drawSaveBanner()
+    if (paused) drawPauseBanner()
+    return
+  }
   if (screen === 'mode-setup') {
     drawModeSetup()
     drawSaveBanner()
@@ -2763,6 +3114,7 @@ function drawFrame(): void {
         scroll: bracketScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: '↑/↓ PRZEWIŃ PARY • ENTER / BACKSPACE — WSTECZ',
+        largeText: settings.largeText,
       })
     }
     drawSaveBanner()
@@ -2863,6 +3215,7 @@ function drawFrame(): void {
         scroll: snapshot.roundSummaryScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: '↑/↓ PRZEWIŃ PARY • ENTER — DALEJ',
+        largeText: settings.largeText,
       })
     } else if ((competition.view === 'round-summary' || competition.view === 'finished') && snapshot.teams) {
       const finished = competition.view === 'finished'
@@ -2879,6 +3232,7 @@ function drawFrame(): void {
         scroll: finished ? 0 : snapshot.roundSummaryScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: finished ? 'ENTER — KONFIGURACJA TRYBU' : '↑/↓ PRZEWIŃ • ENTER — DALEJ',
+        largeText: settings.largeText,
       })
     } else if ((competition.view === 'round-summary' || competition.view === 'finished') && snapshot.koth) {
       const finished = competition.view === 'finished'
@@ -2887,6 +3241,7 @@ function drawFrame(): void {
         title: finished ? 'KING OF THE HILL — WYNIK' : `KING OF THE HILL — ${snapshot.koth.roundLabel}`,
         subtitle: finished ? 'TRYB ROZRYWKOWY • MIEJSCA WG KOLEJNOŚCI ODPADANIA' : `TRYB ROZRYWKOWY • DALEJ: ${snapshot.roundLabel}`,
         footer: finished ? 'ENTER — KONFIGURACJA TRYBU' : 'ENTER — DALEJ',
+        largeText: settings.largeText,
       })
     } else if (competition.view === 'round-summary') {
       drawRoundSummary(context, snapshot, settings.largeText)
@@ -3004,9 +3359,10 @@ function drawMenu(): void {
     team: 'KONKURS DRUŻYNOWY',
     superteam: 'SUPER TEAM',
     koth: 'KING OF THE HILL',
+    records: 'REKORDY I STATYSTYKI',
   }
   MENU_ORDER.forEach((entry, index) => {
-    drawMenuRow(`${menuSelection === entry ? '>' : ' '} ${menuLabels[entry]}`, 44, 78 + index * 10, menuSelection === entry)
+    drawMenuRow(`${menuSelection === entry ? '>' : ' '} ${menuLabels[entry]}`, 44, 77 + index * 9, menuSelection === entry)
   })
   drawMenuRow(menuTrainingGateText(), 44, 171, false)
   drawMenuRow('  [ / ] BELKA NA ZIELONYM', 44, 181, false)
@@ -3088,6 +3444,7 @@ function animationFrame(now: number): void {
     const result = fixedClock.frame(now, simulateTick)
     if (result.overloaded) pauseGame('zbyt długa przerwa klatki', now, true)
   }
+  updateAudio()
   drawFrame()
   requestAnimationFrame(animationFrame)
 }
@@ -3241,6 +3598,20 @@ window.__retroDebugSnapshot = () => ({
     message: modeSetupMessage(),
     resumable: modeResume !== null,
     running: modeRunning,
+  },
+  audio: {
+    running: audio.running,
+    voices: audio.activeVoices,
+    loops: [...audio.activeLoops],
+    music: audio.musicId,
+    played: audio.playedCount,
+  },
+  records: {
+    tab: recordsTab,
+    focus: recordsFocus,
+    loading: recordsLoading,
+    rows: currentRecordRows().map((row) => [...row.cells]),
+    message: recordsScreenView().message,
   },
 })
 

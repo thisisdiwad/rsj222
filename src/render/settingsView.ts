@@ -5,7 +5,7 @@ import { drawPixelText, measurePixelText } from './pixelFont'
 
 export const SETTINGS_ROWS = [
   'takeoff', 'left', 'right', 'telemark', 'parallel',
-  'menuConfirm', 'menuBack', 'volume', 'scaleMode',
+  'menuConfirm', 'menuBack', 'volume', 'sfxVolume', 'crowdVolume', 'musicVolume', 'scaleMode',
   'largeText', 'reducedMotion', 'reset',
 ] as const
 
@@ -32,6 +32,7 @@ const LABELS: Readonly<Record<SettingsRow, string>> = {
   takeoff: 'WYBICIE', left: 'LOT W LEWO', right: 'LOT W PRAWO',
   telemark: 'TELEMARK', parallel: 'DWIE NOGI',
   menuConfirm: 'POTWIERDŹ', menuBack: 'WSTECZ', volume: 'GŁOŚNOŚĆ',
+  sfxVolume: 'EFEKTY', crowdVolume: 'PUBLICZNOŚĆ', musicVolume: 'MUZYKA',
   scaleMode: 'SKALA', largeText: 'DUŻY TEKST', reducedMotion: 'MNIEJ RUCHU',
   reset: 'PRZYWRÓĆ',
 }
@@ -85,7 +86,7 @@ function optionValue(row: SettingsRow, settings: GameSettings): string {
       return physicalKey(settings.bindings[row])
     case 'menuConfirm': case 'menuBack':
       return physicalKey(settings[row])
-    case 'volume': return `${settings.volume}%`
+    case 'volume': case 'sfxVolume': case 'crowdVolume': case 'musicVolume': return `${settings[row]}%`
     case 'scaleMode': return settings.scaleMode === 'fit' ? 'DOPASUJ' : 'RÓWNE PX'
     case 'largeText': return settings.largeText ? 'TAK' : 'NIE'
     case 'reducedMotion': return settings.reducedMotion ? 'TAK' : 'NIE'
@@ -119,11 +120,11 @@ function row(
   // Ważne klawisze / wartości mają 14 fizycznych pikseli wysokości; długie
   // etykiety klawiszy pozostają czytelne i nie wchodzą na nazwę opcji.
   const available = x + width - 6 - (labelX + measurePixelText(LABELS[id]) + 9)
-  const scale = id === 'reset' || available < measurePixelText(value, 2) ? 1 : 2
+  const scale = id === 'reset' || height < 20 || available < measurePixelText(value, 2) ? 1 : 2
   ink(context, clipped(value, available, scale), x + width - 7, y + (scale === 2 ? 3 : 7), valueColor, scale, true)
-  if (id === 'volume') {
-    rect(context, x + 115, y + height - 4, 62, 2, C.edge)
-    rect(context, x + 115, y + height - 4, Math.round(62 * settings.volume / 100), 2, C.green)
+  if (id === 'volume' || id === 'sfxVolume' || id === 'crowdVolume' || id === 'musicVolume') {
+    rect(context, x + 115, y + height - 4, 40, 2, C.edge)
+    rect(context, x + 115, y + height - 4, Math.round(40 * settings[id] / 100), 2, C.green)
   }
 }
 
@@ -156,7 +157,7 @@ export function drawSettingsScreen(context: CanvasRenderingContext2D, state: Set
   rect(context, 19, 15, 119, 2, C.amber)
   rect(context, 462, 10, 4, 4, C.amber)
   ink(context, 'USTAWIENIA', 28, 19, C.amber, 3)
-  ink(context, `${String(SETTINGS_ROWS.indexOf(state.selectedRow) + 1).padStart(2, '0')} / 12`, 448, 29, C.ice, 1, true)
+  ink(context, `${String(SETTINGS_ROWS.indexOf(state.selectedRow) + 1).padStart(2, '0')} / ${SETTINGS_ROWS.length}`, 448, 29, C.ice, 1, true)
   ink(context, 'KLAWISZE  /  DŹWIĘK  /  OBRAZ', 28, 44, C.ice)
   rect(context, 27, 53, 426, 1, C.blue)
 
@@ -169,15 +170,14 @@ export function drawSettingsScreen(context: CanvasRenderingContext2D, state: Set
     context, id, state.settings, state.selectedRow === id, state.captureTarget === id,
     28, 70 + index * 23, 221, 20,
   ))
+  // P31: osiem opcji (cztery suwaki głośności) — niższe wiersze, tekst 1×.
   OPTION_ROWS.forEach((id, index) => row(
     context, id, state.settings, state.selectedRow === id, false,
-    260, 70 + index * 25, 192, 21,
+    260, 70 + index * 18, 192, 16,
   ))
 
-  rect(context, 260, 196, 192, 33, C.field)
-  rect(context, 260, 196, 3, 33, C.green)
-  ink(context, 'POMOC  /  BEZPIECZNY POWRÓT', 270, 201, C.green)
-  ink(context, state.selectedRow === 'scaleMode' ? 'DOPASUJ / RÓWNE PIKSELE' : 'ENTER I BACKSPACE W MENU', 270, 211, C.snow)
-  ink(context, 'DOMYŚLNE: OSTATNI WIERSZ', 270, 220, C.ice)
+  rect(context, 260, 216, 192, 13, C.field)
+  rect(context, 260, 216, 3, 13, C.green)
+  ink(context, state.selectedRow === 'scaleMode' ? 'DOPASUJ / RÓWNE PIKSELE' : 'ENTER I BACKSPACE W MENU', 268, 219, C.green)
   feedback(context, state)
 }

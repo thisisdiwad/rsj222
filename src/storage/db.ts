@@ -13,14 +13,15 @@ import {
   DB_VERSION,
   REPLAY_LIMITS,
   STORE,
-  improvesRecord,
-  isOfficialRecordCandidate,
-  recordKey,
+  isRecordEligible,
+  nextRecord,
+  recordTargets,
   validateStoredCalendar,
   validateStoredReplay,
   validateStoredSeason,
   validateStoredSession,
   type RecordCandidate,
+  type RecordCategory,
   type StoredCalendar,
   type StoredSeason,
   type SessionLeaseRecord,
@@ -105,13 +106,122 @@ export type CommitOutcome =
       /** `false` oznacza idempotentne powtórzenie tego samego `resultId`. */
       readonly applied: boolean
       readonly revision: number
+      /** Zmieniono oficjalny (konkursowy) rekord. */
       readonly recordUpdated: boolean
+      /** P29: wszystkie zmienione kategorie rekordów tego skoku. */
+      readonly recordChanges: readonly RecordChange[]
     }
   | {
       readonly ok: false
       readonly error: 'lease-denied' | 'write-failed'
       readonly reason: string
     }
+
+export type RecordChange = {
+  readonly category: RecordCategory
+  readonly key: string
+  readonly change: 'new' | 'co-holder'
+  readonly record: StoredRecord
+}
+
+/** Kopia replaya rekordu: jedna na klucz, nie podlega rotacji ostatnich skoków. */
+export function recordReplayId(key: string): string {
+  return `record:${key}`
+}
+
+/**
+ * P29 — jedna polityka dla wszystkich kategorii, w transakcji wywołującego.
+ * Nowy rekord z nagranym skokiem zapisuje kopię replaya (`kind: 'record'`).
+ */
+async function applyRecords(
+  transaction: IDBTransaction,
+  candidate: RecordCandidate,
+  result: { readonly resultId: string; readonly participantId: string; readonly totalTenths: number },
+  replay: StoredReplay | null,
+  nowMs: number,
+): Promise<RecordChange[]> {
+  if (!isRecordEligible(candidate)) return []
+  const records = transaction.objectStore(STORE.records)
+  const changes: RecordChange[] = []
+  for (const target of recordTargets(candidate)) {
+    const previous = (await request(records.get(target.key))) as StoredRecord | undefined
+    const next = nextRecord(previous, {
+      key: target.key,
+      distanceHalfMeters: candidate.distanceHalfMeters,
+      totalTenths: result.totalTenths,
+      participantId: result.participantId,
+      participantName: candidate.participantName ?? result.participantId,
+      resultId: result.resultId,
+      establishedAtMs: nowMs,
+      versions: candidate.versions,
+      category: target.category,
+      scope: target.scope,
+      ...(candidate.hillId ? { hillId: candidate.hillId } : {}),
+    })
+    if (!next) continue
+    let record = next.record
+    if (next.change === 'new' && replay) {
+      const replayId = recordReplayId(target.key)
+      transaction.objectStore(STORE.replays).put({ ...replay, id: replayId, kind: 'record' } satisfies StoredReplay)
+      record = { ...record, replayId }
+    }
+    records.put(record)
+    changes.push({ category: target.category, key: target.key, change: next.change, record })
+  }
+  return changes
+}
+
+export type TrainingCommitInput = {
+  readonly candidate: RecordCandidate
+  readonly result: { readonly resultId: string; readonly participantId: string; readonly totalTenths: number }
+  readonly replay: StoredReplay | null
+  readonly nowMs: number
+}
+
+/**
+ * P29 — skok treningowy nie tworzy sesji ani wyniku konkursu; zapisuje tylko
+ * rekord treningowy (i kopię replaya rekordu) w jednej transakcji.
+ */
+export async function commitTrainingJump(db: IDBDatabase, input: TrainingCommitInput): Promise<readonly RecordChange[]> {
+  const transaction = db.transaction([STORE.records, STORE.replays], 'readwrite')
+  const settled = new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve()
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transakcja przerwana.'))
+    transaction.onerror = () => reject(transaction.error ?? new Error('Błąd transakcji.'))
+  })
+  const changes = await applyRecords(transaction, { ...input.candidate, context: 'training' }, input.result, input.replay, input.nowMs)
+  await settled
+  return changes
+}
+
+/** Wszystkie rekordy (także archiwalnych wersji); uszkodzone wpisy są pomijane, nie kasowane. */
+export async function loadRecords(db: IDBDatabase): Promise<readonly StoredRecord[]> {
+  const transaction = db.transaction([STORE.records], 'readonly')
+  const all = (await request(transaction.objectStore(STORE.records).getAll())) as unknown[]
+  return all.filter((entry): entry is StoredRecord => {
+    if (typeof entry !== 'object' || entry === null) return false
+    const record = entry as Partial<StoredRecord>
+    return typeof record.key === 'string' && Number.isInteger(record.distanceHalfMeters)
+      && typeof record.versions === 'object' && record.versions !== null
+  })
+}
+
+/** Wyniki konkursowe do statystyk (P29); wpisy bez wyniku są pomijane. */
+export async function loadResults(db: IDBDatabase): Promise<readonly StoredResult[]> {
+  const transaction = db.transaction([STORE.results], 'readonly')
+  const all = (await request(transaction.objectStore(STORE.results).getAll())) as unknown[]
+  return all.filter((entry): entry is StoredResult => {
+    const result = (entry as Partial<StoredResult> | null)?.result
+    return typeof result === 'object' && result !== null && typeof result.participantId === 'string'
+  })
+}
+
+export async function loadReplay(db: IDBDatabase, id: string): Promise<StoredReplay | null> {
+  const transaction = db.transaction([STORE.replays], 'readonly')
+  const raw = await request(transaction.objectStore(STORE.replays).get(id))
+  const validated = validateStoredReplay(raw)
+  return validated.ok ? validated.value : null
+}
 
 /**
  * Jedna transakcja: lease, wynik, sesja, statystyki, ewentualny rekord i replay.
@@ -125,6 +235,7 @@ export async function commitAttempt(
   const ttlMs = input.leaseTtlMs ?? LEASE_TTL_MS
   let applied = false
   let recordUpdated = false
+  let recordChanges: RecordChange[] = []
   let leaseDeniedBy: string | null = null
   let failure: unknown = null
 
@@ -173,22 +284,10 @@ export async function commitAttempt(
         } satisfies StoredResult)
         hooks.afterResultWrite?.()
 
-        if (input.recordCandidate && isOfficialRecordCandidate(input.recordCandidate)) {
-          const records = transaction.objectStore(STORE.records)
-          const key = recordKey(input.recordCandidate.versions)
-          const previous = (await request(records.get(key))) as StoredRecord | undefined
-          if (improvesRecord(previous, input.recordCandidate.distanceHalfMeters)) {
-            records.put({
-              key,
-              distanceHalfMeters: input.recordCandidate.distanceHalfMeters,
-              totalTenths: input.result.totalTenths,
-              participantId: input.result.participantId,
-              resultId: input.result.resultId,
-              establishedAtMs: input.nowMs,
-              versions: input.recordCandidate.versions,
-            } satisfies StoredRecord)
-            recordUpdated = true
-          }
+        if (input.recordCandidate) {
+          const changes = await applyRecords(transaction, input.recordCandidate, input.result, input.replay, input.nowMs)
+          recordUpdated = changes.some((change) => change.category === 'competition')
+          recordChanges = changes
         }
 
         const replay = input.replay
@@ -228,7 +327,7 @@ export async function commitAttempt(
       return { ok: false, error: 'lease-denied', reason: `sesję zapisuje karta ${leaseDeniedBy}` }
     }
     if (failure) return { ok: false, error: 'write-failed', reason: describe(failure) }
-    return { ok: true, applied, revision: input.session.revision, recordUpdated }
+    return { ok: true, applied, revision: input.session.revision, recordUpdated, recordChanges }
   } catch (cause) {
     if (leaseDeniedBy) {
       return { ok: false, error: 'lease-denied', reason: `sesję zapisuje karta ${leaseDeniedBy}` }
@@ -261,7 +360,9 @@ export async function loadLatestReplay(db: IDBDatabase): Promise<
   { readonly kind: 'none' } | { readonly kind: 'ok'; readonly replay: StoredReplay } | { readonly kind: 'rejected'; readonly reason: string }
 > {
   const transaction = db.transaction([STORE.replays], 'readonly')
-  const all = (await request(transaction.objectStore(STORE.replays).getAll())) as unknown[]
+  // Kopie replayów rekordów (P29) odtwarza ekran rekordów; „ostatnia powtórka” to ostatni skok.
+  const all = ((await request(transaction.objectStore(STORE.replays).getAll())) as unknown[])
+    .filter((entry) => (entry as Partial<StoredReplay> | null)?.kind !== 'record')
   if (all.length === 0) return { kind: 'none' }
   const ordered = [...all].sort(
     (left, right) => Number((right as StoredReplay).createdAtMs ?? 0) - Number((left as StoredReplay).createdAtMs ?? 0),
