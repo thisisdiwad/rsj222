@@ -1,10 +1,9 @@
 # Dokumentacja projektu
 
 Data researchu: **2026-09-21**. Język produktu i dokumentacji: polski.
-**Stan 24.09.2026: PKG-001–015 COMPLETE; P21–P28 COMPLETE (H01–H04 z odbiorem
-użytkownika; ustawienia P22 bez odbioru VISUAL; ekrany sezonu/kalendarza/KO P23–P25 VISUAL USER PASS;
-ekrany drużyn/Super Team/King of the Hill P26–P28 VISUAL USER PASS);
-następny PKG-016/P29–P31.** Grywalne są techniczna K120/HS134,
+**Stan 25.09.2026: PKG-001–016 COMPLETE; P21–P31 COMPLETE, bramka C PASS (H01–H04 z odbiorem
+użytkownika; ustawienia P22 bez odbioru VISUAL; ekrany P23–P28 VISUAL USER PASS; oprawa P30
+i ekrany rekordów czekają na odbiór VISUAL); następny PKG-017/P43.** Grywalne są techniczna K120/HS134,
 [Lillehammer inspirowana K90/HS98](hills/H01.md),
 [Zakopane inspirowane K125/HS140](hills/H02.md) i
 [Oberstdorf inspirowany K120/HS137](hills/H03.md), a także
@@ -36,7 +35,10 @@ które wykonano. PKG-014 dodał puchar sezonu, własny kalendarz z kluczem zesta
 i silnik KO wg F03 §4.3.2 ([raport](evidence/PKG-014/REPORT.md)); użytkownik zaakceptował wygląd ekranów
 24.09.2026 („Akceptuję wygląd ekranów, zamknij PKG-014”). PKG-015 dodał konkurs drużynowy
 (finał 8), Super Team (wszyscy → 12 → 8) i King of the Hill ([raport](evidence/PKG-015/REPORT.md)).
-[Aktywny handoff — PKG-016/P29–P31](NEXT_SESSION_PROMPT.md): rekordy/statystyki, komplet sprite/UI i dźwięk; bramka C.
+PKG-016 dodał rekordy (trening/konkurs/rozrywka/zestaw, archiwum wersji, replay rekordu), statystyki,
+dźwięk syntezowany w kodzie z suwakami kategorii i dopracowanie UI ([raport](evidence/PKG-016/REPORT.md),
+[manifest assetów](ASSETS_MANIFEST.md)). [Aktywny handoff — PKG-017/P43](NEXT_SESSION_PROMPT.md):
+źródłowa weryfikacja listy skoczni PŚ i K/HS.
 **Rozszerzenie planu 24.09.2026 (D20):** pełne v1 obejmuje wszystkie skocznie PŚ
 z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [planie zawartości](CONTENT_PLAN.md),
 zamykana źródłowo przez P43 (PKG-017); każda powstaje tak jak H01–H04.

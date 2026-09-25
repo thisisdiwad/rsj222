@@ -1,6 +1,6 @@
 # Kompletny plan wykonania gry
 
-Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; PKG-015/P26–P28 COMPLETE (VISUAL USER PASS ekranów 24.09.2026); P29–P40 i P43 NOT STARTED (następny PKG-016/P29–P31)**. **Od 24.09.2026 (D20) pełne v1 obejmuje wszystkie skocznie PŚ z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [CONTENT_PLAN](CONTENT_PLAN.md), zamykana przez P43.** H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
+Stan: **P01–P20, P41–P42 COMPLETE (PKG-001–008); PKG-009–013/P21-H01–H04/P22 COMPLETE; PKG-014/P23–P25 COMPLETE; PKG-015/P26–P28 COMPLETE (VISUAL USER PASS ekranów 24.09.2026); PKG-016/P29–P31 COMPLETE, bramka C zaliczona (VISUAL P30 czeka na użytkownika); P32–P40 i P43 NOT STARTED (następny PKG-017/P43)**. **Od 24.09.2026 (D20) pełne v1 obejmuje wszystkie skocznie PŚ z sezonów 2023/24–2025/26 — robocza lista H01–H32 w [CONTENT_PLAN](CONTENT_PLAN.md), zamykana przez P43.** H01: Lillehammer K90/HS98 (`h01-inspired-4`), H02: Zakopane K125/HS140 (`h02-inspired-1`), H03: Oberstdorf K120/HS137 (`h03-inspired-1`), H04: grywalna adaptacja Planicy K200/HS240 (`h04-inspired-4`, fizyka `pkg008-tune-9+h04-polar-1`). Bazowa bramka V PASS po akceptacji użytkownika 22.09.2026; H01–H03 mają odrębne VISUAL USER PASS 23.09.2026 (H02: „Akceptuję H02”, H03: „skocznia obersdorff jest ok”, bez dowodu obejrzenia całego filmu). H04 ma [wyniki techniczne i odbiór](evidence/PKG-012/REPORT.md): VISUAL USER PASS 24.09.2026 („resztę akceptuje”) po dwóch wskazanych i wykonanych poprawkach; zewnętrzny PLAYABILITY NOT RUN. Sześć starych artefaktów PKG-010 pozostaje zaakceptowaną udokumentowaną utratą bez odzyskania czy nowej bazy; stary manifest nietknięty. Obowiązuje [praca w repozytorium GitHub i zasada skoczni inspirowanych](../AGENTS.md): K/HS zgodne z obiektem, inne parametry ADAPT/TUNE, trudny czysty skok na dwie nogi co najmniej 2 m za rekordem. Wspólny pixel art używa siatki logicznej 480×270 skalowanej całkowicie do okna.
 
 Źródła wymagań: [GDD](PRODUCT_GDD.md), [mechanika](GAMEPLAY_SPEC.md), [oprawa](ART_UI_AUDIO.md), [technika](TECHNICAL_DESIGN.md), [zawartość](CONTENT_PLAN.md), [QA](QA_ACCEPTANCE.md). Reguły sportowe nie są odtwarzane z pamięci ani z instrukcji SJ3.
 
@@ -333,13 +333,15 @@ Gra 4 skoczni, standardowy konkurs, trening, AI, hotseat, pełna punktacja, zapi
 
 **Zależności:** P19, P20, P23–P28. **Pliki:** record policy, stats reducer, history/records screens, testy.
 
-- [ ] Osobne rekordy treningu/konkursu/zestawu; automat replaya rekordu; statystyki sezonu i skoków.
-- [ ] Zmiana wersji archiwizuje stare rekordy, brak utraty i mieszania wyników.
+- [x] Osobne rekordy treningu/konkursu/zestawu (+ rozrywka KotH); automat replaya rekordu (także z treningu); statystyki sezonu i skoków (PKG-016).
+- [x] Zmiana wersji archiwizuje stare rekordy (klucz wersji, zakładka ARCHIWUM), brak utraty i mieszania wyników.
 - **Weryfikacja:** Q-FIS-15, remisy rekordu, DSQ/upadek, powtórne zatwierdzenie wyniku.
 
 ### Bramka C — wszystkie tryby
 
 Każdy tryb ma pełną drogę wejście→gra→wynik→powrót, poprawną obsadę i zapis. Nie wymaga jeszcze ukończonych assetów wszystkich skoczni, ale nie może mieć pustego menu prowadzącego do „coming soon”.
+
+**Status: PASS 25.09.2026 (PKG-016)** — `gateC.spec.ts` (10 pozycji menu + trening do wyniku), pełne drogi w `competition.spec.ts` (konkurs → wynik → rekordy), `season.spec.ts` (puchar, KO) i `modes.spec.ts` (drużyny, Super Team, KotH).
 
 P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zestawu testowego. Dopiero P32 wiąże go z właściwymi H03/H05/H06/H07. Nie podpisywać zastępczej skoczni jako Innsbruck i nie tworzyć cyklicznej zależności P25→P32→P30→P29→P25. Bramka D obejmuje finalny kalendarz i właściwe obiekty.
 
@@ -349,16 +351,16 @@ P25 sprawdza silnik turnieju na dostępnych czterech obiektach, pod nazwą zesta
 
 **Zależności:** P15, P22, P29. **Pliki:** mastery/atlas skoczka, font, UI atlas, manifest.
 
-- [ ] Wszystkie fazy skoku i błędy mają spójne, czytelne animacje; brak placeholderów na normalnej ścieżce.
-- [ ] Wszystkie menu/tabele utrzymują styl gry; duży tekst i polskie znaki gotowe.
+- [x] Wszystkie fazy skoku i błędy mają spójne, czytelne animacje; brak placeholderów na normalnej ścieżce (bank P42 + poza hamowania, PKG-016). VISUAL: czeka na użytkownika.
+- [x] Wszystkie menu/tabele utrzymują styl gry; duży tekst w tabelach wyników i polskie znaki gotowe (test pokrycia fontu); manifest `docs/ASSETS_MANIFEST.md`.
 - **Weryfikacja:** obraz 1:1/2×, nagranie wybicia i kontaktu; tablice wyników w kilku rozmiarach okna.
 
 ### P31 — Pełny dźwięk [M, osobne podzadanie na muzykę]
 
 **Zależności:** P03, P08, P22. **Pliki:** audio director, manifest, bank SFX, muzyka, test lifecycle.
 
-- [ ] Pętle i efekty wszystkich faz, wyciszenie podczas pauzy, suwaki niezależnych kategorii.
-- [ ] Każdy utwór/efekt ma autora i licencję; audio nie jest wymagane do odczytu zasad.
+- [x] Pętle i efekty wszystkich faz, wyciszenie podczas pauzy, suwaki niezależnych kategorii (PKG-016, `src/audio/`).
+- [x] Każdy utwór/efekt ma autora i licencję (`docs/ASSETS_MANIFEST.md`, synteza w kodzie); audio nie jest wymagane do odczytu zasad.
 - **Weryfikacja:** odsłuch przejść,50 prób bez narastania liczby głosów, autoplay denied i powrót z tła.
 
 ### P43 — Lista obiektów PŚ 2023/24–2025/26 [S]
