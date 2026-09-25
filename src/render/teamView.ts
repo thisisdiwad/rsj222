@@ -6,6 +6,7 @@
 
 import type { KothView, TeamTableView } from '../app/competitionSession'
 import { COLOR, clear, fitTableText, header, panel, points, text } from './competitionView'
+import { drawPixelText } from './pixelFont'
 
 export type SetupRow = {
   readonly label: string
@@ -170,24 +171,50 @@ export type TeamTableScreen = {
   readonly scroll: number
   readonly visibleRows: number
   readonly footer: string
+  /** P30: duży tekst — miejsce, drużyna i suma w skali 2×, bez kolumny składu. */
+  readonly largeText?: boolean
+}
+
+function drawLargeTeamRows(context: CanvasRenderingContext2D, view: TeamTableScreen): void {
+  const { table } = view
+  const maximum = Math.max(0, table.rows.length - view.visibleRows)
+  const start = Math.min(maximum, Math.max(0, view.scroll))
+  table.rows.slice(start, start + view.visibleRows).forEach((row, offset) => {
+    const top = 62 + offset * 16
+    if (row.human) {
+      context.fillStyle = '#294657'
+      context.fillRect(24, top - 1, 432, 15)
+    }
+    const out = table.advanceLimit !== null && row.rank > table.advanceLimit
+    const color = row.human ? COLOR.gold : out ? COLOR.border : COLOR.text
+    drawPixelText(context, `${row.rank}.`, 64, top, color, 2, 'right')
+    drawPixelText(context, row.name, 74, top, color, 2)
+    drawPixelText(context, tenths(row.totalTenths), 450, top, color, 2, 'right')
+  })
 }
 
 export function drawTeamTable(context: CanvasRenderingContext2D, view: TeamTableScreen): void {
   clear(context)
   header(context, view.title, view.subtitle)
   const { table } = view
-  panel(context, 18, 40, 444, 142)
-  const columns = [262, 322, 382].slice(0, table.roundLabels.length)
-  text(context, 'DRUŻYNA', 48, 54, COLOR.dim, 7)
-  table.roundLabels.forEach((label, index) => text(context, ROUND_SHORT[label] ?? label, columns[index]!, 54, COLOR.dim, 7, 'right'))
-  text(context, 'SUMA', 452, 54, COLOR.gold, 7, 'right')
-  context.fillStyle = COLOR.blue
-  context.fillRect(24, 58, 432, 1)
+  if (view.largeText) {
+    panel(context, 18, 40, 444, 142)
+    drawLargeTeamRows(context, view)
+  }
+  if (!view.largeText) panel(context, 18, 40, 444, 142)
+  const columns = view.largeText ? [] : [262, 322, 382].slice(0, table.roundLabels.length)
+  if (!view.largeText) {
+    text(context, 'DRUŻYNA', 48, 54, COLOR.dim, 7)
+    table.roundLabels.forEach((label, index) => text(context, ROUND_SHORT[label] ?? label, columns[index]!, 54, COLOR.dim, 7, 'right'))
+    text(context, 'SUMA', 452, 54, COLOR.gold, 7, 'right')
+    context.fillStyle = COLOR.blue
+    context.fillRect(24, 58, 432, 1)
+  }
 
   const maximum = Math.max(0, table.rows.length - view.visibleRows)
   const start = Math.min(maximum, Math.max(0, view.scroll))
   const rowHeight = Math.floor(118 / view.visibleRows)
-  table.rows.slice(start, start + view.visibleRows).forEach((row, offset) => {
+  if (!view.largeText) table.rows.slice(start, start + view.visibleRows).forEach((row, offset) => {
     const index = start + offset
     const y = 70 + offset * rowHeight
     if (row.human) humanBar(context, 24, y, 432)
@@ -232,6 +259,8 @@ export type KothBoardScreen = {
   readonly subtitle: string
   readonly koth: KothView
   readonly footer: string
+  /** P30: duży tekst — nazwiska i noty w skali 2×. */
+  readonly largeText?: boolean
 }
 
 export function drawKothBoard(context: CanvasRenderingContext2D, view: KothBoardScreen): void {
@@ -243,6 +272,15 @@ export function drawKothBoard(context: CanvasRenderingContext2D, view: KothBoard
   text(context, 'UCZESTNICY', 28, 55, COLOR.gold, 7)
   koth.rows.forEach((row, index) => {
     const y = 70 + index * 15
+    if (view.largeText) {
+      const top = 60 + index * 16
+      if (row.human) humanBar(context, 24, top + 10, 194)
+      const color = row.state === 'winner' ? COLOR.gold : row.state === 'out' ? COLOR.red : row.human ? COLOR.gold : COLOR.text
+      const surname = row.name.split(' ').at(-1) ?? row.name
+      drawPixelText(context, fitTableText(`${row.rank ?? ' '} ${surname}`, 136, 2), 28, top, color, 2)
+      drawPixelText(context, row.state === 'winner' ? 'WYGR' : row.state === 'in' ? 'GRA' : `R${row.eliminatedInRound}`, 216, top, color, 2, 'right')
+      return
+    }
     if (row.human) humanBar(context, 24, y, 194)
     const color = row.state === 'winner' ? COLOR.gold : row.state === 'out' ? COLOR.border : row.human ? COLOR.gold : COLOR.text
     const rank = row.rank === null ? ' ' : `${row.rank}.`
@@ -258,6 +296,14 @@ export function drawKothBoard(context: CanvasRenderingContext2D, view: KothBoard
   context.fillRect(240, 60, 212, 1)
   koth.roundResults.forEach((row, index) => {
     const y = 74 + index * 15
+    if (view.largeText) {
+      const top = 64 + index * 16
+      const color = row.eliminated ? COLOR.red : row.human ? COLOR.gold : COLOR.text
+      const value = row.totalTenths !== null ? tenths(row.totalTenths) : row.status === 'waiting' ? '—' : row.status.toUpperCase().slice(0, 3)
+      drawPixelText(context, fitTableText(row.name.split(' ').at(-1) ?? row.name, 120, 2), 240, top, color, 2)
+      drawPixelText(context, value, 452, top, color, 2, 'right')
+      return
+    }
     if (row.human) humanBar(context, 236, y, 220)
     const color = row.eliminated ? COLOR.red : row.human ? COLOR.gold : COLOR.text
     text(context, row.eliminated ? 'X' : ' ', 244, y, COLOR.red, 7)

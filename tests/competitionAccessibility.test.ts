@@ -32,10 +32,10 @@ const standings: readonly RankingEntry[] = Array.from({ length: 75 }, (_, index)
 beforeEach(() => vi.mocked(drawPixelText).mockClear())
 
 describe('P22 — bitmapowy ekran i czytelne tabele', () => {
-  it('ma dokładnie 12 wierszy, widoczny fokus, etykiety fizycznych klawiszy i powrót ratunkowy', () => {
+  it('ma dokładnie 15 wierszy (P31: suwaki kategorii), widoczny fokus, etykiety fizycznych klawiszy i powrót ratunkowy', () => {
     expect(SETTINGS_ROWS).toEqual([
       'takeoff', 'left', 'right', 'telemark', 'parallel', 'menuConfirm', 'menuBack',
-      'volume', 'scaleMode', 'largeText', 'reducedMotion', 'reset',
+      'volume', 'sfxVolume', 'crowdVolume', 'musicVolume', 'scaleMode', 'largeText', 'reducedMotion', 'reset',
     ])
     const ctx = canvas()
     drawSettingsScreen(ctx, { settings: DEFAULT_SETTINGS, selectedRow: 'takeoff', captureTarget: null, message: null })

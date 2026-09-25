@@ -23,7 +23,9 @@ describe('P22 — model ustawień', () => {
   it('zwraca bezpieczny nowy domyślny obiekt dla nieznanej wersji, złego kształtu, liczb i kolizji', () => {
     const bad: unknown[] = [
       null,
-      { ...DEFAULT_SETTINGS, version: 2 },
+      { ...DEFAULT_SETTINGS, version: 3 },
+      { ...DEFAULT_SETTINGS, musicVolume: 101 },
+      { ...DEFAULT_SETTINGS, crowdVolume: -5 },
       { ...DEFAULT_SETTINGS, bindings: { ...DEFAULT_SETTINGS.bindings, extra: 'KeyW' } },
       { ...DEFAULT_SETTINGS, bindings: { ...DEFAULT_SETTINGS.bindings, right: 'ArrowLeft' } },
       { ...DEFAULT_SETTINGS, bindings: { ...DEFAULT_SETTINGS.bindings, left: 'Enter' } },
@@ -45,6 +47,13 @@ describe('P22 — model ustawień', () => {
       expect(normalized).not.toBe(DEFAULT_SETTINGS)
       expect(normalized.bindings).not.toBe(DEFAULT_PLAYER_BINDINGS)
     }
+  })
+
+  it('P31: zapis v1 (bez suwaków kategorii) jest podnoszony do v2 z domyślnymi suwakami', () => {
+    const { sfxVolume: _sfx, crowdVolume: _crowd, musicVolume: _music, ...rest } = { ...DEFAULT_SETTINGS, volume: 40 }
+    const upgraded = normalizeSettings({ ...rest, version: 1 })
+    expect(upgraded).toEqual({ ...DEFAULT_SETTINGS, volume: 40 })
+    expect(normalizeSettings({ ...rest, version: 1, volume: 140 })).toEqual(DEFAULT_SETTINGS)
   })
 
   it('zachowuje poprawne opcje i nie oddaje obiektu źródłowego', () => {

@@ -82,8 +82,8 @@ async function openMode(page: Page, target: 'team' | 'superteam' | 'koth'): Prom
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await page.keyboard.press('Enter')
   await waitFor(page, (state) => state.screen === 'menu' && state.persistence.ready, 'menu z bazą')
-  // Tryby PKG-015 są na końcu listy: ↑ z „trening” zawija na KotH, potem Super Team i drużynowy.
-  for (const step of ['koth', 'superteam', 'team']) {
+  // Tryby PKG-015 są przed rekordami (PKG-016): ↑ z „trening” → rekordy, KotH, Super Team, drużynowy.
+  for (const step of ['records', 'koth', 'superteam', 'team']) {
     await press(page, 'ArrowUp', (state) => state.menuSelection === step, `menu → ${step}`)
     if (step === target) break
   }

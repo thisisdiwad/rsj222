@@ -49,12 +49,12 @@ function savePng(result: EvidenceResult, name: string): void {
   writeFileSync(test.info().outputPath(name), Buffer.from(base64, 'base64'))
 }
 
-test('41 klatek, sylwetki, start z belki, podpórki, przejścia i wysokości cienia trafiają wyłącznie do outputPath', async ({ page }) => {
+test('42 klatki (P30: + hamowanie), sylwetki, start z belki, podpórki, przejścia i wysokości cienia trafiają wyłącznie do outputPath', async ({ page }) => {
   await page.goto('/?debug', { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => Boolean((window as unknown as { __retroVisualEvidence?: unknown }).__retroVisualEvidence))
 
   const all = await poseSheet(page)
-  expect(all.frames).toHaveLength(41)
+  expect(all.frames).toHaveLength(42)
   expect(all.frames?.filter((frame) => frame.pose === 'takeoff')).toHaveLength(6)
   expect(Object.fromEntries(
     ['gate', 'inrun', 'takeoff', 'flight', 'landingPrep', 'supportOne', 'supportTwo', 'outrun', 'fall'].map((poseName) => [

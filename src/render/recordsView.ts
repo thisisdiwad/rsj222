@@ -4,6 +4,7 @@
  */
 
 import { COLOR, clear, fitTableText, header, panel, text } from './competitionView'
+import { drawPixelText } from './pixelFont'
 
 export type RecordsTab = 'records' | 'stats' | 'archive'
 
@@ -25,6 +26,11 @@ export type RecordsScreenView = {
   readonly emptyText: string
   readonly notes: readonly string[]
   readonly message: string
+  /**
+   * P30: duży tekst — tylko wskazane kolumny (indeksy `columns`) w skali 2×,
+   * z nowymi pozycjami; pełne dane zostają w warstwie dostępności.
+   */
+  readonly large?: readonly { readonly cell: number; readonly x: number; readonly width: number; readonly align?: 'left' | 'right' }[]
 }
 
 const TABS: readonly { readonly id: RecordsTab; readonly label: string }[] = [
@@ -51,7 +57,10 @@ export function drawRecordsScreen(context: CanvasRenderingContext2D, view: Recor
   const noteHeight = view.notes.length > 0 ? view.notes.length * 10 + 8 : 0
   const tableHeight = 190 - noteHeight
   panel(context, 18, 54, 444, tableHeight)
-  for (const column of view.columns) {
+  const headers = view.large
+    ? view.large.map((large) => ({ ...view.columns[large.cell]!, x: large.x, width: large.width, align: large.align }))
+    : view.columns
+  for (const column of headers) {
     const x = column.align === 'right' ? column.x + column.width : column.x
     text(context, column.label, x, 68, COLOR.dim, 7, column.align ?? 'left')
   }
@@ -61,8 +70,24 @@ export function drawRecordsScreen(context: CanvasRenderingContext2D, view: Recor
   if (view.rows.length === 0) text(context, view.emptyText, 30, 88, COLOR.dim, 7)
   const maximum = Math.max(0, view.rows.length - view.visibleRows)
   const start = Math.min(maximum, Math.max(0, view.scroll))
-  const rowHeight = Math.max(10, Math.floor((tableHeight - 26) / view.visibleRows))
-  view.rows.slice(start, start + view.visibleRows).forEach((row, offset) => {
+  const rowHeight = view.large ? 16 : Math.max(10, Math.floor((tableHeight - 26) / view.visibleRows))
+  if (view.large) {
+    const large = view.large
+    view.rows.slice(start, start + view.visibleRows).forEach((row, offset) => {
+      const top = 78 + offset * rowHeight
+      const focused = start + offset === view.focusedRow
+      if (focused || row.human) {
+        context.fillStyle = focused ? COLOR.panelAlt : '#294657'
+        context.fillRect(24, top - 1, 432, 15)
+      }
+      const color = focused || row.human ? COLOR.gold : COLOR.text
+      for (const column of large) {
+        const value = fitTableText(row.cells[column.cell] ?? '', column.width, 2)
+        drawPixelText(context, value, column.align === 'right' ? column.x + column.width : column.x, top, color, 2, column.align ?? 'left')
+      }
+    })
+  }
+  if (!view.large) view.rows.slice(start, start + view.visibleRows).forEach((row, offset) => {
     const index = start + offset
     const y = 84 + offset * rowHeight
     const focused = index === view.focusedRow

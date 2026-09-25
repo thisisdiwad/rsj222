@@ -15,6 +15,7 @@ type Debug = {
   persistence: { ready: boolean }
   jump: { phase: string; status: string | null; events: string[] } | null
   records: { tab: string; loading: boolean; rows: string[][] }
+  audio: { running: boolean; voices: number; loops: string[]; music: string | null; played: number }
 }
 
 const OVERLOAD_REASON = 'zbyt długa przerwa klatki'
@@ -113,3 +114,18 @@ test('bramka C: trening — skok do stanu końcowego z wynikiem, potem menu', as
   await page.screenshot({ path: test.info().outputPath('gate-c-training-result-960x540.png') })
   await press(page, 'Backspace', (state) => state.screen === 'menu', 'powrót z treningu')
 })
+
+test('P31: dźwięk po geście — muzyka menu, cisza muzyki w skoku, pętla ślizgu, efekty menu', async ({ page }) => {
+  test.setTimeout(60_000)
+  const menu = await waitFor(page, (state) => state.audio.running && state.audio.music === 'menu', 'muzyka menu')
+  const before = menu.audio.played
+  await press(page, 'ArrowDown', (state) => state.menuSelection === 'competition', 'menu ↓')
+  expect((await snapshot(page)).audio.played).toBeGreaterThan(before)
+  await press(page, 'ArrowUp', (state) => state.menuSelection === 'training', 'menu ↑')
+  await press(page, 'Enter', (state) => state.screen === 'jump', 'trening')
+  expect((await snapshot(page)).audio.music).toBeNull()
+  await press(page, 'ArrowRight', (state) => state.audio.loops.includes('slide'), 'pętla ślizgu na rozbiegu')
+  const loops = await waitFor(page, (state) => state.jump?.phase === 'Inrun', 'rozbieg')
+  expect(loops.audio.loops).toEqual(['slide'])
+})
+

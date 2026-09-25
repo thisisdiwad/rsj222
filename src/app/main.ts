@@ -103,6 +103,8 @@ import {
 } from '../storage/schema'
 import { ReplayPlayer, replayVisualsCompatible } from '../replay/player'
 import { JumpRecorder } from '../replay/recorder'
+import { AudioDirector } from '../audio/audioDirector'
+import type { MusicId } from '../audio/synth'
 import { drawReplayScreen } from '../render/replayView'
 import { drawSettingsScreen, SETTINGS_ROWS, type BindingRow, type SettingsRow } from '../render/settingsView'
 import { DEFAULT_SETTINGS, normalizeSettings, rebindSettings, resolveBoundAction, type GameSettings } from '../settings/settings'
@@ -229,6 +231,13 @@ type DebugSnapshot = {
     message: string
     resumable: boolean
     running: boolean
+  }
+  audio: {
+    running: boolean
+    voices: number
+    loops: string[]
+    music: string | null
+    played: number
   }
   records: {
     tab: RecordsTab
@@ -375,48 +384,8 @@ let competitionProfileCount = 1
 let competitionDifficulty: AiDifficulty = 'normal'
 let competition: CompetitionSession | null = null
 
-class AudioGate {
-  private audioContext: AudioContext | null = null
-
-  async unlock(): Promise<void> {
-    const AudioConstructor = window.AudioContext
-    if (!AudioConstructor) return
-    this.audioContext ??= new AudioConstructor()
-    await this.audioContext.resume()
-    // Do not play at default volume before a persisted mute has been loaded.
-    if (persistenceReady || saveState === 'failed') this.play('confirm')
-  }
-
-  play(kind: 'confirm' | 'takeoff' | 'contact' | 'fall' | 'result' | 'record'): void {
-    const audioContext = this.audioContext
-    if (!audioContext || audioContext.state !== 'running' || settings.volume === 0) return
-    try {
-      const oscillator = audioContext.createOscillator()
-      const gain = audioContext.createGain()
-      const now = audioContext.currentTime
-      const sound = {
-        confirm: { from: 220, to: 280, duration: 0.07, volume: 0.025, wave: 'square' as OscillatorType },
-        takeoff: { from: 165, to: 430, duration: 0.09, volume: 0.035, wave: 'square' as OscillatorType },
-        contact: { from: 150, to: 92, duration: 0.1, volume: 0.04, wave: 'triangle' as OscillatorType },
-        fall: { from: 90, to: 42, duration: 0.18, volume: 0.055, wave: 'sawtooth' as OscillatorType },
-        result: { from: 330, to: 495, duration: 0.14, volume: 0.03, wave: 'square' as OscillatorType },
-        record: { from: 523, to: 1046, duration: 0.3, volume: 0.03, wave: 'square' as OscillatorType },
-      }[kind]
-      oscillator.type = sound.wave
-      oscillator.frequency.setValueAtTime(sound.from, now)
-      oscillator.frequency.exponentialRampToValueAtTime(sound.to, now + sound.duration)
-      gain.gain.setValueAtTime(sound.volume * settings.volume / 100, now)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + sound.duration)
-      oscillator.connect(gain).connect(audioContext.destination)
-      oscillator.start(now)
-      oscillator.stop(now + sound.duration)
-    } catch {
-      // Dźwięk jest dodatkiem. Niepełne lub zablokowane Web Audio nie wpływa na grę.
-    }
-  }
-}
-
-const audio = new AudioGate()
+/** P31: jeden manager dźwięku; kontekst powstaje dopiero z gestu gracza (autoplay). */
+const audio = new AudioDirector(() => (typeof window.AudioContext === 'function' ? new window.AudioContext() : null))
 const audioEventCursor = new WeakMap<JumpSimulation, number>()
 const resultSoundPlayed = new WeakSet<JumpSimulation>()
 
@@ -424,8 +393,10 @@ function playJumpAudio(sim: JumpSimulation): void {
   const from = audioEventCursor.get(sim) ?? 0
   for (const event of sim.events.slice(from)) {
     if (event.type === 'takeoffEdge') audio.play('takeoff')
-    else if (event.type === 'contact') audio.play('contact')
+    else if (event.type === 'contact') audio.play(sim.landingStyle === 'telemark' ? 'telemark' : sim.landingStyle === 'parallel' ? 'parallel' : 'contact')
+    else if (event.type === 'handSupport') audio.play('contact')
     else if (event.type === 'fall') audio.play('fall')
+    else if (event.type === 'outrunStopped' || event.type === 'finishLine') audio.play('brake')
   }
   audioEventCursor.set(sim, sim.events.length)
 }
@@ -434,6 +405,61 @@ function playResultAudio(sim: JumpSimulation): void {
   if (resultSoundPlayed.has(sim)) return
   resultSoundPlayed.add(sim)
   audio.play('result')
+  // Publiczność reaguje tylko w konkursie; trening jest cichy.
+  if (screen === 'competition' && sim.outcome?.status === 'landed') audio.play('cheer')
+}
+
+let lastStartPhase: string | null = null
+const podiumPlayed = new WeakSet<CompetitionSession>()
+
+/** Muzyka ekranu: menu, konfiguracja, podium; w trakcie skoku domyślnie cisza. */
+function musicForScreen(): MusicId | null {
+  if (screen === 'menu' || screen === 'settings' || screen === 'records') return 'menu'
+  if (screen === 'competition-setup' || screen === 'mode-setup' || screen === 'season'
+    || screen === 'calendar-editor' || screen === 'ko-bracket') return 'setup'
+  if (screen === 'competition' && competition?.view === 'finished') return 'podium'
+  return null
+}
+
+/** Wołane co klatkę: poziomy, pauza, pętle zależne od prędkości, światła startu, muzyka. */
+function updateAudio(): void {
+  const ready = persistenceReady || saveState === 'failed'
+  audio.setLevels({ master: settings.volume, sfx: settings.sfxVolume, crowd: settings.crowdVolume, music: settings.musicVolume })
+  audio.setPaused(paused || !ready || fullscreenTransitioning)
+  if (!ready) return
+  audio.setMusic(musicForScreen())
+
+  const sim = screen === 'jump' ? jump : screen === 'competition' && competition?.view === 'jump' ? competition.jump : null
+  const phase = sim?.phase ?? null
+  const speed = Math.min(1, (sim?.speedKmh ?? 0) / 100)
+  const sliding = phase === 'Inrun' || phase === 'Takeoff' || phase === 'Contact' || phase === 'Outrun'
+  const flying = phase === 'Flight' || phase === 'LandingPrep'
+  audio.setLoop('slide', sliding ? 0.25 + 0.75 * speed : 0, speed)
+  audio.setLoop('wind', flying ? 0.3 + 0.7 * speed : 0, speed)
+  audio.setLoop('crowd', screen === 'competition' && competition && competition.view !== 'finished' ? (competition.view === 'jump' ? 0.5 : 0.3) : 0)
+
+  const startPhase = screen === 'competition' && competition?.view === 'start' ? competition.startProcedure?.phase ?? null : null
+  if (startPhase !== lastStartPhase) {
+    if (startPhase === 'red') audio.play('lightRed')
+    else if (startPhase === 'yellow') audio.play('lightYellow')
+    else if (startPhase === 'green') audio.play('lightGreen')
+    lastStartPhase = startPhase
+  }
+  if (screen === 'competition' && competition?.view === 'finished' && !podiumPlayed.has(competition)) {
+    podiumPlayed.add(competition)
+    audio.play('podium')
+  }
+}
+
+/** Dźwięki interfejsu na ekranach menu/tabel (nie w trakcie skoku). */
+function playUiSound(event: KeyboardEvent): void {
+  if (event.repeat || paused) return
+  const gameplay = screen === 'jump' || (screen === 'competition' && (competition?.view === 'jump' || competition?.view === 'start'))
+  if (gameplay || screen === 'title' || screen === 'replay') return
+  if (event.code === 'ArrowUp' || event.code === 'ArrowDown' || event.code === 'ArrowLeft' || event.code === 'ArrowRight'
+    || event.code === 'PageUp' || event.code === 'PageDown') audio.play('select')
+  else if (event.code === 'Enter' || event.code === settings.menuConfirm) audio.play('confirm')
+  else if (event.code === 'Backspace' || event.code === settings.menuBack) audio.play('back')
 }
 
 function requireElement<T extends Element>(id: string): T {
@@ -471,7 +497,8 @@ const MENU_NAMES: Readonly<Record<MenuSelection, string>> = {
 }
 const SETTINGS_NAMES: Readonly<Record<SettingsRow, string>> = {
   takeoff: 'Wybicie', left: 'Lot w lewo', right: 'Lot w prawo', telemark: 'Telemark', parallel: 'Dwie nogi',
-  menuConfirm: 'Potwierdź', menuBack: 'Wstecz', volume: 'Głośność', scaleMode: 'Skala',
+  menuConfirm: 'Potwierdź', menuBack: 'Wstecz', volume: 'Głośność', sfxVolume: 'Efekty', crowdVolume: 'Publiczność',
+  musicVolume: 'Muzyka', scaleMode: 'Skala',
   largeText: 'Duży tekst', reducedMotion: 'Mniej ruchu', reset: 'Przywróć domyślne',
 }
 
@@ -1340,6 +1367,7 @@ function seasonHubView() {
     standings: visible.map((row) => ({ rank: row.rank, name: row.name, value: format(row.value), human: humanIds.has(row.participantId) })),
     events,
     setLine: `KLUCZ ${key} • UKOŃCZONE ${sameSet.length}`,
+    largeText: settings.largeText,
     message: seasonMessage || (customCalendarProblem && seasonFormat === 'cup' ? `WŁASNY KALENDARZ: ${customCalendarProblem.toUpperCase()}` : defaultMessage),
   }
 }
@@ -2310,7 +2338,7 @@ function recordsScreenView(): RecordsScreenView {
   const notes = recordsTab === 'stats'
     ? [...seasonNotes, `TRENING W TEJ SESJI: ${trainingCompletedAttempts} SKOKÓW • REKORDY TRENINGU: ZAKŁADKA REKORDY`]
     : recordsTab === 'records'
-      ? [`TYLKO USTANE SKOKI • TRENING I ROZRYWKA OSOBNO • REMIS: +N WSPÓŁPOSIADACZY • ARCHIWUM: ${archived}`]
+      ? [`TYLKO USTANE SKOKI • TRENING I ROZRYWKA OSOBNO • REMIS: +N WSPÓŁ. • ARCHIWUM: ${archived}`]
       : ['REKORDY STARYCH WERSJI SKOCZNI, FIZYKI LUB ZASAD — ZACHOWANE, NIE MIESZANE Z BIEŻĄCYMI']
   const focused = rows[focus]
   const replayHint = recordsTab !== 'stats' && focused?.record?.replayId ? 'ENTER — POWTÓRKA REKORDU • ' : ''
@@ -2321,7 +2349,11 @@ function recordsScreenView(): RecordsScreenView {
     rows,
     focusedRow: recordsTab === 'stats' ? -1 : focus,
     scroll: Math.max(0, focus - RECORDS_VISIBLE_ROWS + 3),
-    visibleRows: settings.largeText ? 9 : RECORDS_VISIBLE_ROWS - notes.length,
+    visibleRows: settings.largeText ? (recordsTab === 'records' ? 9 : 7) - notes.length : RECORDS_VISIBLE_ROWS - notes.length,
+    large: !settings.largeText ? undefined
+      : recordsTab === 'stats'
+        ? [{ cell: 0, x: 30, width: 190 }, { cell: 1, x: 226, width: 60, align: 'right' }, { cell: 4, x: 300, width: 150, align: 'right' }]
+        : [{ cell: 0, x: 30, width: 150 }, { cell: 1, x: 190, width: 130 }, { cell: 2, x: 330, width: 120, align: 'right' }],
     emptyText: recordsTab === 'stats' ? 'BRAK SKOKÓW KONKURSOWYCH GRACZY' : recordsTab === 'archive' ? 'BRAK REKORDÓW STARSZYCH WERSJI' : 'BRAK REKORDÓW',
     notes,
     message: recordsMessage || `${replayHint}←/→ ZAKŁADKA • ↑/↓ WYBÓR • BACKSPACE — MENU`,
@@ -2399,10 +2431,9 @@ function startFromGesture(): void {
   if (screen !== 'title') return
 
   void requestFullscreenSafely()
-  void audio.unlock().then(
-    () => { lifecycleMessage = 'DŹWIĘK: AKTYWNY' },
-    () => { lifecycleMessage = 'DŹWIĘK: NIEDOSTĘPNY — GRA DZIAŁA DALEJ' },
-  )
+  void audio.unlock().then((running) => {
+    lifecycleMessage = running ? 'DŹWIĘK: AKTYWNY' : 'DŹWIĘK: NIEDOSTĘPNY — GRA DZIAŁA DALEJ'
+  })
 
   screen = 'menu'
   paused = false
@@ -2545,9 +2576,10 @@ function closeSettings(): void {
 
 function changeSettingsOption(direction: -1 | 1): void {
   switch (selectedRow) {
-    case 'volume': {
-      const volume = Math.max(0, Math.min(100, settings.volume + direction * 10))
-      if (volume !== settings.volume) updateSettings({ ...settings, volume }, `GŁOŚNOŚĆ ${volume}%`)
+    case 'volume': case 'sfxVolume': case 'crowdVolume': case 'musicVolume': {
+      const key = selectedRow
+      const volume = Math.max(0, Math.min(100, settings[key] + direction * 10))
+      if (volume !== settings[key]) updateSettings({ ...settings, [key]: volume }, `${SETTINGS_NAMES[key].toUpperCase()} ${volume}%`)
       break
     }
     case 'scaleMode':
@@ -2606,7 +2638,8 @@ function handleSettingsKey(event: KeyboardEvent): void {
   if (event.code !== 'Enter' && event.code !== settings.menuConfirm) return
   if (selectedRow === 'reset') {
     updateSettings(normalizeSettings(DEFAULT_SETTINGS), 'PRZYWRÓCONO DOMYŚLNE USTAWIENIA')
-  } else if (selectedRow === 'volume' || selectedRow === 'scaleMode' || selectedRow === 'largeText' || selectedRow === 'reducedMotion') {
+  } else if (selectedRow === 'volume' || selectedRow === 'sfxVolume' || selectedRow === 'crowdVolume' || selectedRow === 'musicVolume'
+    || selectedRow === 'scaleMode' || selectedRow === 'largeText' || selectedRow === 'reducedMotion') {
     changeSettingsOption(1)
   } else {
     captureTarget = selectedRow
@@ -2630,6 +2663,9 @@ function textEntryOrComposing(event: KeyboardEvent): boolean {
 function onKeyDown(event: KeyboardEvent): void {
   if (textEntryOrComposing(event)) return
   if (event.code === 'Enter' && !event.repeat) enterDown = true
+  // Autoplay: jeśli przeglądarka odmówiła dźwięku, każda kolejna akcja gracza próbuje go włączyć.
+  if (screen !== 'title' && !audio.running && !event.repeat) void audio.unlock()
+  playUiSound(event)
 
   if (screen === 'title' && event.code === 'Enter' && !event.repeat) {
     event.preventDefault()
@@ -3078,6 +3114,7 @@ function drawFrame(): void {
         scroll: bracketScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: '↑/↓ PRZEWIŃ PARY • ENTER / BACKSPACE — WSTECZ',
+        largeText: settings.largeText,
       })
     }
     drawSaveBanner()
@@ -3178,6 +3215,7 @@ function drawFrame(): void {
         scroll: snapshot.roundSummaryScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: '↑/↓ PRZEWIŃ PARY • ENTER — DALEJ',
+        largeText: settings.largeText,
       })
     } else if ((competition.view === 'round-summary' || competition.view === 'finished') && snapshot.teams) {
       const finished = competition.view === 'finished'
@@ -3194,6 +3232,7 @@ function drawFrame(): void {
         scroll: finished ? 0 : snapshot.roundSummaryScroll,
         visibleRows: settings.largeText ? LARGE_ROUND_SUMMARY_VISIBLE_ROWS : ROUND_SUMMARY_VISIBLE_ROWS,
         footer: finished ? 'ENTER — KONFIGURACJA TRYBU' : '↑/↓ PRZEWIŃ • ENTER — DALEJ',
+        largeText: settings.largeText,
       })
     } else if ((competition.view === 'round-summary' || competition.view === 'finished') && snapshot.koth) {
       const finished = competition.view === 'finished'
@@ -3202,6 +3241,7 @@ function drawFrame(): void {
         title: finished ? 'KING OF THE HILL — WYNIK' : `KING OF THE HILL — ${snapshot.koth.roundLabel}`,
         subtitle: finished ? 'TRYB ROZRYWKOWY • MIEJSCA WG KOLEJNOŚCI ODPADANIA' : `TRYB ROZRYWKOWY • DALEJ: ${snapshot.roundLabel}`,
         footer: finished ? 'ENTER — KONFIGURACJA TRYBU' : 'ENTER — DALEJ',
+        largeText: settings.largeText,
       })
     } else if (competition.view === 'round-summary') {
       drawRoundSummary(context, snapshot, settings.largeText)
@@ -3404,6 +3444,7 @@ function animationFrame(now: number): void {
     const result = fixedClock.frame(now, simulateTick)
     if (result.overloaded) pauseGame('zbyt długa przerwa klatki', now, true)
   }
+  updateAudio()
   drawFrame()
   requestAnimationFrame(animationFrame)
 }
@@ -3557,6 +3598,13 @@ window.__retroDebugSnapshot = () => ({
     message: modeSetupMessage(),
     resumable: modeResume !== null,
     running: modeRunning,
+  },
+  audio: {
+    running: audio.running,
+    voices: audio.activeVoices,
+    loops: [...audio.activeLoops],
+    music: audio.musicId,
+    played: audio.playedCount,
   },
   records: {
     tab: recordsTab,

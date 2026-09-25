@@ -9,6 +9,7 @@ import type { SeasonState } from '../src/sport/season'
 import {
   commitAttempt,
   commitTrainingJump,
+  loadLatestReplay,
   loadRecords,
   loadReplay,
   openGameDatabase,
@@ -158,6 +159,8 @@ describe('P29 — zapis rekordów w transakcji skoku (IndexedDB v3)', () => {
       ['training|r1|p1|h01-inspired-5', 205],
     ])
     expect(records.find((record) => record.versions.hill === V2.hill)!.replayId).toBeNull()
+    // Kopia replaya rekordu treningu nie udaje „ostatniej powtórki” konkursu.
+    expect(await loadLatestReplay(db)).toEqual({ kind: 'none' })
   })
 })
 

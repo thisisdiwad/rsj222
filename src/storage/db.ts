@@ -360,7 +360,9 @@ export async function loadLatestReplay(db: IDBDatabase): Promise<
   { readonly kind: 'none' } | { readonly kind: 'ok'; readonly replay: StoredReplay } | { readonly kind: 'rejected'; readonly reason: string }
 > {
   const transaction = db.transaction([STORE.replays], 'readonly')
-  const all = (await request(transaction.objectStore(STORE.replays).getAll())) as unknown[]
+  // Kopie replayów rekordów (P29) odtwarza ekran rekordów; „ostatnia powtórka” to ostatni skok.
+  const all = ((await request(transaction.objectStore(STORE.replays).getAll())) as unknown[])
+    .filter((entry) => (entry as Partial<StoredReplay> | null)?.kind !== 'record')
   if (all.length === 0) return { kind: 'none' }
   const ordered = [...all].sort(
     (left, right) => Number((right as StoredReplay).createdAtMs ?? 0) - Number((left as StoredReplay).createdAtMs ?? 0),

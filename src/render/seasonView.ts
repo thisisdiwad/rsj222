@@ -6,6 +6,7 @@
 
 import type { KoBracketView, KoPairRow } from '../app/competitionSession'
 import { COLOR, clear, fitTableText, header, panel, points, text } from './competitionView'
+import { drawPixelText } from './pixelFont'
 
 export type SeasonHubRow = {
   readonly label: string
@@ -29,6 +30,8 @@ export type SeasonHubView = {
   }[]
   readonly setLine: string
   readonly message: string
+  /** P30: duży tekst klasyfikacji (skala 2×, mniej wierszy). */
+  readonly largeText?: boolean
 }
 
 export type CalendarEditorView = {
@@ -48,6 +51,8 @@ export type KoBracketScreen = {
   readonly scroll: number
   readonly visibleRows: number
   readonly footer: string
+  /** P30: duży tekst — para w jednym wierszu, nazwiska i noty w skali 2×. */
+  readonly largeText?: boolean
 }
 
 function footerBar(context: CanvasRenderingContext2D, value: string, color: string = COLOR.green): void {
@@ -96,7 +101,20 @@ export function drawSeasonHub(context: CanvasRenderingContext2D, view: SeasonHub
   if (view.standings.length === 0) {
     text(context, 'BRAK WYNIKÓW — ROZEGRAJ PIERWSZY KONKURS', 224, 78, COLOR.dim, 7)
   }
-  view.standings.forEach((row, index) => {
+  if (view.largeText) {
+    view.standings.slice(0, 9).forEach((row, index) => {
+      const top = 66 + index * 18
+      if (row.human) {
+        context.fillStyle = '#294657'
+        context.fillRect(220, top - 2, 236, 17)
+      }
+      const color = row.human ? COLOR.gold : COLOR.text
+      drawPixelText(context, `${row.rank}.`, 256, top, color, 2, 'right')
+      drawPixelText(context, fitTableText(row.name.split(' ').at(-1) ?? row.name, 100, 2), 262, top, color, 2)
+      drawPixelText(context, row.value.replace(' PKT', ''), 452, top, color, 2, 'right')
+    })
+  }
+  if (!view.largeText) view.standings.forEach((row, index) => {
     const y = 74 + index * 12
     if (row.human) {
       context.fillStyle = '#294657'
@@ -178,7 +196,24 @@ export function drawKoBracket(context: CanvasRenderingContext2D, view: KoBracket
   const maximum = Math.max(0, bracket.pairs.length - view.visibleRows)
   const start = Math.min(maximum, Math.max(0, view.scroll))
   const rowHeight = Math.floor(184 / view.visibleRows)
-  bracket.pairs.slice(start, start + view.visibleRows).forEach((pair, index) => {
+  if (view.largeText) bracket.pairs.slice(start, start + view.visibleRows).forEach((pair, index) => {
+    const top = 50 + index * rowHeight
+    const human = pair.slots.some((slot) => slot.participantId?.startsWith('local-'))
+    if (human) {
+      context.fillStyle = '#294657'
+      context.fillRect(24, top - 2, 432, 17)
+    }
+    pair.slots.forEach((slot, slotIndex) => {
+      const x = slotIndex === 0 ? 28 : 248
+      const won = bracket.resolved && slot.participantId !== null && slot.participantId === pair.winnerId
+      const luckyLoser = bracket.resolved && slot.participantId !== null && lucky.has(slot.participantId)
+      const color = !bracket.resolved ? COLOR.text : won ? COLOR.gold : luckyLoser ? COLOR.green : COLOR.border
+      const surname = slot.participantId ? slot.name.split(' ').at(-1) ?? slot.name : '—'
+      drawPixelText(context, fitTableText(surname, bracket.resolved ? 120 : 196, 2), x, top, color, 2)
+      if (bracket.resolved) drawPixelText(context, slotScore(slot, true), x + 204, top, color, 2, 'right')
+    })
+  })
+  if (!view.largeText) bracket.pairs.slice(start, start + view.visibleRows).forEach((pair, index) => {
     const y = 56 + index * rowHeight
     const human = pair.slots.some((slot) => slot.participantId?.startsWith('local-'))
     if (human) {
