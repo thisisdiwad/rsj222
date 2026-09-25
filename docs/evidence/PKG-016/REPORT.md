@@ -1,10 +1,8 @@
 # PKG-016 / P29–P31 — raport: rekordy i statystyki, komplet sprite/UI, pełny dźwięk
 
 **Status: COMPLETE (25.09.2026) — zakres P29, P30, P31 wykonany; bramka C PASS; jedno końcowe review zamknięte.**
-**VISUAL P30 (oprawa, ekran rekordów, duży tekst, poza hamowania) czeka na odbiór użytkownika** — model nie wydaje
-werdyktu VISUAL. Handoff przewidywał, że bez tego odbioru pakiet jest formalnie niezamknięty: jeśli użytkownik zgłosi uwagi,
-wracamy do nich przed PKG-017 (tak zapisano w prompcie PKG-017). Odsłuch dźwięku przez człowieka: NOT RUN. Zewnętrzny
-PLAYABILITY NOT RUN.
+**VISUAL USER PASS 25.09.2026** — użytkownik po scaleniu PR 3, zapytany o ocenę grafiki P30 i odsłuch dźwięku P31:
+„akceptuje” (zrzuty i nagranie z `screens/`). Pakiet formalnie zamknięty. Zewnętrzny PLAYABILITY NOT RUN.
 
 ## Status zadań
 
@@ -44,7 +42,7 @@ PLAYABILITY NOT RUN.
   z wideo (plik konfiguracji usunięty).
 - Katalogi `tmp-*` przed uruchomieniem nie istniały; zrzuty i nagranie przeniesiono do `screens/`, katalogi tymczasowe usunięto.
 
-## Zrzuty i nagranie do odbioru VISUAL (użytkownik)
+## Zrzuty i nagranie odebrane przez użytkownika (VISUAL USER PASS 25.09.2026)
 
 `screens/`: `menu-480x270.png`, `menu-960x540.png`, `settings-480x270.png`, `settings-960x540.png`, `settings-large-on-960x540.png`,
 `records-480x270.png`, `records-960x540.png`, `records-tab-960x540.png` (rekord konkursu po pełnym konkursie), `records-stats-960x540.png`,
@@ -62,8 +60,8 @@ Sprawdzono ponownie zmienione ścieżki (typecheck, unit, build, specy wyżej). 
 
 ## Ograniczenia i jawne decyzje
 
-- VISUAL P30 i odsłuch P31: czekają na użytkownika. Brzmienie to prosta synteza w stylu kart dźwiękowych epoki DOS; łatwo ją
-  stroić w `synth.ts`, jeśli odsłuch wskaże zmiany.
+- VISUAL P30 i odsłuch P31: USER PASS 25.09.2026 („akceptuje”). Brzmienie to prosta synteza w stylu kart dźwiękowych epoki DOS;
+  łatwo ją stroić w `synth.ts`, jeśli późniejszy odsłuch wskaże zmiany.
 - Drużyny i Super Team liczą się do oficjalnego rekordu konkursu (to formaty FIS); King of the Hill — osobna kategoria rozrywki.
 - Rekord zestawu dotyczy konkursów sezonu (puchar, własny kalendarz, turniej KO); nazwa kategorii pokazuje klucz zestawu.
 - Kopia replaya rekordu powstaje tylko dla skoków z nagraniem (skoki ludzi); rekord bota nie ma powtórki (ekran to mówi).

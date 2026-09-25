@@ -3,7 +3,7 @@
 Data researchu: **2026-09-21**. Język produktu i dokumentacji: polski.
 **Stan 25.09.2026: PKG-001–016 COMPLETE; P21–P31 COMPLETE, bramka C PASS (H01–H04 z odbiorem
 użytkownika; ustawienia P22 bez odbioru VISUAL; ekrany P23–P28 VISUAL USER PASS; oprawa P30
-i ekrany rekordów czekają na odbiór VISUAL); następny PKG-017/P43.** Grywalne są techniczna K120/HS134,
+i dźwięk P31 VISUAL USER PASS 25.09.2026); następny PKG-017/P43.** Grywalne są techniczna K120/HS134,
 [Lillehammer inspirowana K90/HS98](hills/H01.md),
 [Zakopane inspirowane K125/HS140](hills/H02.md) i
 [Oberstdorf inspirowany K120/HS137](hills/H03.md), a także
